@@ -50,7 +50,7 @@ export default {
     const handleLogin = () => {
       if (password.value === CORRECT_PASSWORD) {
         localStorage.setItem('authenticated', 'true')
-        router.push('/gallery')
+        router.push('/games')
       } else {
         error.value = 'Falsches Passwort!'
         setTimeout(() => error.value = '', 3000)

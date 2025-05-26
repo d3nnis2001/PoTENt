@@ -4,7 +4,7 @@
       <div class="flex justify-between items-center mb-8">
         <div>
           <button
-            @click="$router.push('/gallery')"
+            @click="$router.push('/top10/gallery')"
             class="text-purple-200 hover:text-white mb-2 flex items-center gap-2"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

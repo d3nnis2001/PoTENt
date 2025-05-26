@@ -10,7 +10,16 @@
       <div v-else>
         <div class="flex justify-between items-center mb-8">
           <div>
-            <h1 class="text-3xl font-bold text-white">Kartendecks</h1>
+            <button
+              @click="$router.push('/games')"
+              class="text-purple-200 hover:text-white mb-2 flex items-center gap-2"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+              Zurück zur Spielauswahl
+            </button>
+            <h1 class="text-3xl font-bold text-white">Top 10 - Kartendecks</h1>
             <p class="text-purple-200 text-sm">☁️ Cloud-Sync aktiv</p>
           </div>
           <div class="flex gap-4">
@@ -204,11 +213,11 @@ export default {
       }
       
       const deckIds = selectedDecks.value.join(',')
-      router.push(`/play/${deckIds}`)
+      router.push(`/top10/play/${deckIds}`)
     }
 
     const editDeck = (deckId) => {
-      router.push(`/edit/${deckId}`)
+      router.push(`/top10/edit/${deckId}`)
     }
 
     const migrateData = async () => {

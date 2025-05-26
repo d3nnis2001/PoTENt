@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import Login from '../views/Login.vue'
+import GameSelection from '../views/GameSelection.vue'
 import Gallery from '../views/Gallery.vue'
 import EditDeck from '../views/EditDeck.vue'
 import PlayDeck from '../views/PlayDeck.vue'
@@ -11,21 +12,38 @@ const routes = [
     component: Login
   },
   {
-    path: '/gallery',
+    path: '/games',
+    name: 'GameSelection',
+    component: GameSelection
+  },
+  {
+    path: '/top10/gallery',
     name: 'Gallery',
     component: Gallery
   },
   {
-    path: '/edit/:deckId',
+    path: '/top10/edit/:deckId',
     name: 'EditDeck',
     component: EditDeck,
     props: true
   },
   {
-    path: '/play/:deckId',
+    path: '/top10/play/:deckId',
     name: 'PlayDeck',
     component: PlayDeck,
     props: true
+  },
+  {
+    path: '/gallery',
+    redirect: '/top10/gallery'
+  },
+  {
+    path: '/edit/:deckId',
+    redirect: to => `/top10/edit/${to.params.deckId}`
+  },
+  {
+    path: '/play/:deckId',
+    redirect: to => `/top10/play/${to.params.deckId}`
   }
 ]
 
@@ -41,7 +59,7 @@ router.beforeEach((to, from, next) => {
   if (to.name !== 'Login' && !isAuthenticated) {
     next({ name: 'Login' })
   } else if (to.name === 'Login' && isAuthenticated) {
-    next({ name: 'Gallery' })
+    next({ name: 'GameSelection' })
   } else {
     next()
   }
