@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import Login from '../views/Login.vue'
+import PlayerSetup from '../views/PlayerSetup.vue'
 import GameSelection from '../views/GameSelection.vue'
 import Gallery from '../views/Gallery.vue'
 import EditDeck from '../views/EditDeck.vue'
@@ -13,6 +14,11 @@ const routes = [
     path: '/',
     name: 'Login',
     component: Login
+  },
+  {
+    path: '/players',
+    name: 'PlayerSetup',
+    component: PlayerSetup
   },
   {
     path: '/games',
@@ -80,14 +86,13 @@ const router = createRouter({
   routes
 })
 
-// Auth Guard
 router.beforeEach((to, from, next) => {
   const isAuthenticated = localStorage.getItem('authenticated') === 'true'
   
   if (to.name !== 'Login' && !isAuthenticated) {
     next({ name: 'Login' })
   } else if (to.name === 'Login' && isAuthenticated) {
-    next({ name: 'GameSelection' })
+    next({ name: 'PlayerSetup' })
   } else {
     next()
   }
