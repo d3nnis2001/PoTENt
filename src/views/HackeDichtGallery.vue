@@ -35,9 +35,22 @@
         >
           <div class="flex justify-between items-start mb-4">
             <div class="flex-1">
-              <h3 class="text-lg font-semibold text-white group-hover:text-orange-200 transition-colors">
-                {{ game.name }}
-              </h3>
+              <div class="flex items-center gap-2 mb-1">
+                <h3 class="text-lg font-semibold text-white group-hover:text-orange-200 transition-colors">
+                  {{ game.name }}
+                </h3>
+                <!-- Password Protection Indicator -->
+                <svg 
+                  v-if="game.isProtected" 
+                  class="w-5 h-5 text-yellow-400" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                  title="Passwortgeschützt"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                </svg>
+              </div>
               <p v-if="game.description" class="text-orange-200 text-sm mt-1">
                 {{ game.description }}
               </p>
@@ -92,14 +105,17 @@
           <!-- Action Buttons -->
           <div class="flex gap-2">
             <button
-              @click="playGame(game.id)"
+              @click="playGame(game)"
               :disabled="!isGamePlayable(game)"
-              class="flex-1 bg-gradient-to-r from-orange-600 to-red-600 text-white py-2 px-4 rounded-lg font-medium hover:from-orange-700 hover:to-red-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="flex-1 bg-gradient-to-r from-orange-600 to-red-600 text-white py-2 px-4 rounded-lg font-medium hover:from-orange-700 hover:to-red-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
             >
+              <svg v-if="game.isProtected" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+              </svg>
               Spielen
             </button>
             <button
-              @click="editGame(game.id)"
+              @click="editGame(game)"
               class="flex-1 bg-white/20 text-white py-2 px-4 rounded-lg font-medium hover:bg-white/30 transition-all duration-200"
             >
               Bearbeiten
@@ -132,30 +148,97 @@
           Quiz erstellen
         </button>
       </div>
+
+      <!-- Password Modal -->
+      <PasswordModal
+        :show="showPasswordModal"
+        :title="`${selectedGame?.name} entsperren`"
+        subtitle="Dieses Quiz ist passwortgeschützt"
+        :is-loading="isVerifying"
+        :error="passwordError"
+        @close="closePasswordModal"
+        @submit="verifyPassword"
+      />
     </div>
   </div>
 </template>
 
 <script>
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { hackeDichtStore } from '../store/hackeDichtStore'
+import { usePasswordProtection } from '../composables/usePasswordProtection'
+import PasswordModal from '../components/PasswordModal.vue'
 
 export default {
   name: 'HackeDichtGallery',
+  components: {
+    PasswordModal
+  },
   setup() {
     const router = useRouter()
+    const selectedGame = ref(null)
+    const pendingAction = ref(null) // 'play' or 'edit'
+    
+    const {
+      showPasswordModal,
+      passwordError,
+      isVerifying,
+      checkGameAccess,
+      requestPassword,
+      verifyPassword: verifyGamePassword,
+      closePasswordModal: closeModal
+    } = usePasswordProtection()
 
     const createNewGame = () => {
       router.push('/hacke-dicht/editor')
     }
 
-    const editGame = (gameId) => {
-      router.push(`/hacke-dicht/editor/${gameId}`)
+    const editGame = async (game) => {
+      if (game.isProtected && !checkGameAccess(game, game.id)) {
+        selectedGame.value = game
+        pendingAction.value = 'edit'
+        requestPassword(game.id)
+      } else {
+        router.push(`/hacke-dicht/editor/${game.id}`)
+      }
     }
 
-    const playGame = (gameId) => {
-      router.push(`/hacke-dicht/play/${gameId}`)
+    const playGame = async (game) => {
+      if (!isGamePlayable(game)) return
+      
+      if (game.isProtected && !checkGameAccess(game, game.id)) {
+        selectedGame.value = game
+        pendingAction.value = 'play'
+        requestPassword(game.id)
+      } else {
+        router.push(`/hacke-dicht/play/${game.id}`)
+      }
+    }
+
+    const verifyPassword = async (password) => {
+      if (!selectedGame.value) return
+
+      const isValid = await verifyGamePassword(selectedGame.value, password)
+      
+      if (isValid) {
+        if (pendingAction.value === 'play') {
+          router.push(`/hacke-dicht/play/${selectedGame.value.id}`)
+        } else if (pendingAction.value === 'edit') {
+          router.push(`/hacke-dicht/editor/${selectedGame.value.id}`)
+        }
+        resetPasswordState()
+      }
+    }
+
+    const closePasswordModal = () => {
+      closeModal()
+      resetPasswordState()
+    }
+
+    const resetPasswordState = () => {
+      selectedGame.value = null
+      pendingAction.value = null
     }
 
     const deleteGame = (gameId) => {
@@ -210,9 +293,15 @@ export default {
 
     return {
       hackeDichtStore,
+      selectedGame,
+      showPasswordModal,
+      passwordError,
+      isVerifying,
       createNewGame,
       editGame,
       playGame,
+      verifyPassword,
+      closePasswordModal,
       deleteGame,
       getCompletedQuestions,
       getEventQuestionsCount,

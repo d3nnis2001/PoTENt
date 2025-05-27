@@ -57,6 +57,67 @@
           </div>
         </div>
 
+        <!-- Password Protection -->
+        <div class="mt-6">
+          <div class="flex items-center gap-3 mb-4">
+            <input
+              v-model="usePassword"
+              type="checkbox"
+              id="usePassword"
+              class="w-5 h-5 bg-white/20 border-2 border-white/30 rounded text-orange-600 focus:ring-orange-500 focus:ring-2"
+            />
+            <label for="usePassword" class="text-white font-medium cursor-pointer">
+              Quiz mit Passwort schützen
+            </label>
+            <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+          </div>
+          
+          <div v-if="usePassword" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-white font-medium mb-2">Passwort</label>
+              <div class="relative">
+                <input
+                  v-model="gameData.password"
+                  :type="showPassword ? 'text' : 'password'"
+                  class="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-purple-200 focus:outline-none focus:ring-2 focus:ring-orange-400 pr-12"
+                  placeholder="Passwort für das Quiz"
+                  :required="usePassword"
+                />
+                <button
+                  type="button"
+                  @click="showPassword = !showPassword"
+                  class="absolute right-3 top-1/2 transform -translate-y-1/2 text-purple-200 hover:text-white"
+                >
+                  <svg v-if="showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+                  </svg>
+                  <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="flex items-end">
+              <div class="bg-yellow-600/20 border border-yellow-400/30 rounded-lg p-3 text-sm">
+                <div class="flex items-start gap-2">
+                  <svg class="w-4 h-4 text-yellow-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <div>
+                    <p class="text-yellow-200 font-medium">Passwortschutz</p>
+                    <p class="text-yellow-300 text-xs mt-1">
+                      Andere Spieler benötigen das Passwort, um das Quiz zu spielen.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Belohnungen -->
         <div class="mt-6">
           <h3 class="text-lg font-semibold text-white mb-4">Belohnungen (Getränke)</h3>
@@ -204,7 +265,7 @@
                 class="text-red-400 hover:text-red-300"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1v3M4 7h16"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                 </svg>
               </button>
             </div>
@@ -228,6 +289,7 @@
         <h3 class="text-red-400 font-semibold mb-2">Fehlende Angaben:</h3>
         <ul class="text-red-300 text-sm space-y-1">
           <li v-if="!gameData.name">• Spielname fehlt</li>
+          <li v-if="usePassword && !gameData.password">• Passwort fehlt</li>
           <li v-if="gameData.rewards.some(r => !r.name)">• Alle Belohnungen müssen benannt werden</li>
           <li v-if="gameData.questions.some(q => !q.question)">• Alle Fragen müssen ausgefüllt werden</li>
           <li v-if="gameData.questions.some(q => q.answers.some(a => !a.text))">• Alle Antwortmöglichkeiten müssen ausgefüllt werden</li>
@@ -239,7 +301,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { hackeDichtStore } from '../store/hackeDichtStore'
 
@@ -254,6 +316,8 @@ export default {
   setup(props) {
     const router = useRouter()
     const isSaving = ref(false)
+    const usePassword = ref(false)
+    const showPassword = ref(false)
     const isEditing = computed(() => !!props.gameId)
 
     const gameData = ref(hackeDichtStore.createEmptyGame())
@@ -264,12 +328,24 @@ export default {
         const existingGame = hackeDichtStore.getGame(parseInt(props.gameId))
         if (existingGame) {
           gameData.value = JSON.parse(JSON.stringify(existingGame)) // Deep copy
+          usePassword.value = existingGame.isProtected || false
+          // Don't show the hashed password
+          if (existingGame.isProtected) {
+            gameData.value.password = ''
+          }
         } else {
           alert('Spiel nicht gefunden!')
           router.push('/hacke-dicht/gallery')
         }
       }
     }
+
+    // Watch password checkbox
+    watch(usePassword, (newVal) => {
+      if (!newVal) {
+        gameData.value.password = ''
+      }
+    })
 
     const getRewardLabel = (index) => {
       const ranges = ['Fragen 1-5', 'Fragen 6-10', 'Fragen 11-15']
@@ -325,6 +401,9 @@ export default {
       // Check basic game info
       if (!gameData.value.name) return false
       
+      // Check password if enabled
+      if (usePassword.value && !gameData.value.password) return false
+      
       // Check rewards
       if (gameData.value.rewards.some(reward => !reward.name)) return false
       
@@ -342,6 +421,14 @@ export default {
       
       isSaving.value = true
       try {
+        // Set password protection flag
+        if (usePassword.value && gameData.value.password) {
+          gameData.value.isProtected = true
+        } else {
+          gameData.value.isProtected = false
+          gameData.value.password = ''
+        }
+
         if (isEditing.value) {
           hackeDichtStore.updateGame(props.gameId, gameData.value)
           alert('Spiel erfolgreich aktualisiert!')
@@ -368,6 +455,8 @@ export default {
       isSaving,
       isGameValid,
       isEditing,
+      usePassword,
+      showPassword,
       getRewardLabel,
       getRewardPlaceholder,
       getRewardForQuestion,

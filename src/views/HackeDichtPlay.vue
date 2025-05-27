@@ -15,8 +15,25 @@
         <h1 class="text-3xl font-bold text-white mb-2">{{ game?.name || 'Wer wird hacke dicht?' }}</h1>
       </div>
 
+      <!-- Password Required State -->
+      <div v-if="needsPassword" class="flex justify-center items-center min-h-[60vh]">
+        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-8 border border-white/20 max-w-md text-center">
+          <svg class="w-16 h-16 text-yellow-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+          </svg>
+          <h2 class="text-xl font-bold text-white mb-2">Quiz ist gesperrt</h2>
+          <p class="text-orange-200 mb-6">Dieses Quiz ist passwortgeschützt. Du wirst zur Galerie weitergeleitet.</p>
+          <button
+            @click="$router.push('/hacke-dicht/gallery')"
+            class="bg-gradient-to-r from-orange-600 to-red-600 text-white py-3 px-6 rounded-lg font-medium hover:from-orange-700 hover:to-red-700 transition-all"
+          >
+            Zur Galerie
+          </button>
+        </div>
+      </div>
+
       <!-- Loading State -->
-      <div v-if="isLoading" class="text-center py-8">
+      <div v-else-if="isLoading" class="text-center py-8">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
         <p class="text-white mt-2">Lade Quiz...</p>
       </div>
@@ -314,6 +331,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { hackeDichtStore } from '../store/hackeDichtStore'
+import { PasswordUtils } from '../utils/passwordUtils'
 
 export default {
   name: 'HackeDichtPlay',
@@ -327,6 +345,7 @@ export default {
     const router = useRouter()
     const isLoading = ref(true)
     const game = ref(null)
+    const needsPassword = ref(false)
     const currentQuestionIndex = ref(0)
     const gamePhase = ref('progress') // 'progress', 'reading', 'showing_answer'
     const showResults = ref(false)
@@ -351,6 +370,35 @@ export default {
     const isLastQuestion = computed(() => {
       return currentQuestionIndex.value >= 14
     })
+
+    const checkGameAccess = () => {
+      if (!game.value) return false
+      
+      // If game is not protected, allow access
+      if (!game.value.isProtected) return true
+      
+      // Check if user has valid session
+      const sessionKey = `session_${props.gameId}`
+      try {
+        const sessionData = localStorage.getItem(sessionKey)
+        if (sessionData) {
+          const session = JSON.parse(sessionData)
+          const now = Date.now()
+          const sessionAge = now - session.timestamp
+          const maxAge = 24 * 60 * 60 * 1000 // 24 hours
+
+          if (sessionAge < maxAge && session.gameId == props.gameId) {
+            return true
+          } else {
+            localStorage.removeItem(sessionKey)
+          }
+        }
+      } catch {
+        localStorage.removeItem(sessionKey)
+      }
+      
+      return false
+    }
 
     const getProgressLevelClass = (level) => {
       const current = currentQuestionIndex.value + 1
@@ -450,6 +498,16 @@ export default {
         }
 
         game.value = gameData
+
+        // Check if password protection blocks access
+        if (!checkGameAccess()) {
+          needsPassword.value = true
+          setTimeout(() => {
+            router.push('/hacke-dicht/gallery')
+          }, 3000)
+          return
+        }
+
       } catch (error) {
         console.error('Error loading game:', error)
       } finally {
@@ -464,6 +522,7 @@ export default {
     return {
       isLoading,
       game,
+      needsPassword,
       currentQuestion,
       currentQuestionIndex,
       gamePhase,
