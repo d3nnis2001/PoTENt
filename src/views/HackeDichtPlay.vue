@@ -65,7 +65,7 @@
                   <div v-else class="w-full h-full bg-white/20 rounded-lg flex items-center justify-center">
                     <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                  </svg>
+                    </svg>
                   </div>
                 </div>
                 <span class="text-white font-bold text-sm">{{ game.rewards[2]?.name || 'Belohnung 3' }}</span>
@@ -88,7 +88,7 @@
                   <div v-else class="w-full h-full bg-white/20 rounded-lg flex items-center justify-center">
                     <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                  </svg>
+                    </svg>
                   </div>
                 </div>
                 <span class="text-white font-bold text-sm">{{ game.rewards[1]?.name || 'Belohnung 2' }}</span>
@@ -111,7 +111,7 @@
                   <div v-else class="w-full h-full bg-white/20 rounded-lg flex items-center justify-center">
                     <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                  </svg>
+                    </svg>
                   </div>
                 </div>
                 <span class="text-white font-bold text-sm">{{ game.rewards[0]?.name || 'Belohnung 1' }}</span>
@@ -185,26 +185,26 @@
       <!-- Event Question Display with Cool Animation -->
       <div v-else-if="showEventQuestion" class="h-[75vh] flex justify-center items-center relative overflow-hidden">
         <!-- Background Lightning Effect -->
-        <div class="absolute inset-0 bg-yellow-400/10 animate-pulse"></div>
+        <div class="absolute inset-0 bg-yellow-400/10" style="animation: slowPulse 3s ease-in-out infinite;"></div>
         <div class="absolute inset-0 opacity-30">
-          <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-yellow-600/20 via-transparent to-yellow-600/20 animate-pulse"></div>
+          <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-yellow-600/20 via-transparent to-yellow-600/20" style="animation: slowPulse 4s ease-in-out infinite;"></div>
           <!-- Lightning Bolts -->
           <svg class="absolute top-10 left-10 w-16 h-16 text-yellow-400 animate-bounce" fill="currentColor" viewBox="0 0 24 24">
             <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
           </svg>
-          <svg class="absolute top-20 right-20 w-12 h-12 text-yellow-300 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+          <svg class="absolute top-20 right-20 w-12 h-12 text-yellow-300" style="animation: slowPulse 2.5s ease-in-out infinite;" fill="currentColor" viewBox="0 0 24 24">
             <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
           </svg>
           <svg class="absolute bottom-20 left-20 w-20 h-20 text-yellow-500 animate-bounce" fill="currentColor" viewBox="0 0 24 24">
             <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
           </svg>
-          <svg class="absolute bottom-10 right-10 w-14 h-14 text-yellow-400 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+          <svg class="absolute bottom-10 right-10 w-14 h-14 text-yellow-400" style="animation: slowPulse 3.5s ease-in-out infinite;" fill="currentColor" viewBox="0 0 24 24">
             <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
           </svg>
         </div>
 
         <!-- Event Content -->
-        <div class="relative z-10 bg-gradient-to-br from-yellow-600/30 to-yellow-700/30 backdrop-blur-lg rounded-xl p-8 border-2 border-yellow-400/50 max-w-4xl shadow-2xl transform animate-pulse">
+        <div class="relative z-10 bg-gradient-to-br from-yellow-600/30 to-yellow-700/30 backdrop-blur-lg rounded-xl p-8 border-2 border-yellow-400/50 max-w-4xl shadow-2xl">
           <div class="flex items-center justify-center gap-4 mb-6">
             <svg class="w-16 h-16 text-yellow-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
@@ -259,6 +259,85 @@
 
       <!-- Question Display -->
       <div v-else-if="currentQuestion" class="space-y-6">
+        <!-- Jokers Display -->
+        <div class="fixed top-4 left-4 z-40 flex flex-col gap-3">
+          <!-- 50/50 Joker -->
+          <button
+            @click="use5050Joker"
+            :disabled="jokers.fiftyFifty.used || gamePhase !== 'reading'"
+            :class="[
+              'p-3 rounded-xl border-2 transition-all duration-300 flex items-center justify-center',
+              jokers.fiftyFifty.used 
+                ? 'bg-gray-600/30 border-gray-400/30 opacity-50 cursor-not-allowed' 
+                : 'bg-blue-600/30 border-blue-400/50 hover:bg-blue-600/50 cursor-pointer'
+            ]"
+            title="50/50 Joker - Entfernt 2 falsche Antworten"
+          >
+            <div class="relative">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <span class="absolute -bottom-1 -right-1 bg-blue-600 text-white text-xs px-1 rounded">50/50</span>
+              <!-- Durchstrich wenn benutzt -->
+              <div v-if="jokers.fiftyFifty.used" class="absolute inset-0 flex items-center justify-center">
+                <div class="w-full h-0.5 bg-red-500 transform rotate-45"></div>
+                <div class="absolute w-full h-0.5 bg-red-500 transform -rotate-45"></div>
+              </div>
+            </div>
+          </button>
+
+          <!-- Random Person Joker -->
+          <button
+            @click="useRandomPersonJoker"
+            :disabled="jokers.randomPerson.used || gamePhase !== 'reading'"
+            :class="[
+              'p-3 rounded-xl border-2 transition-all duration-300 flex items-center justify-center',
+              jokers.randomPerson.used 
+                ? 'bg-gray-600/30 border-gray-400/30 opacity-50 cursor-not-allowed' 
+                : 'bg-purple-600/30 border-purple-400/50 hover:bg-purple-600/50 cursor-pointer'
+            ]"
+            title="Random Person Joker - Wählt zufällig einen Spieler aus"
+          >
+            <div class="relative">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+              </svg>
+              <span class="absolute -bottom-1 -right-1 bg-purple-600 text-white text-xs px-1 rounded">?</span>
+              <!-- Durchstrich wenn benutzt -->
+              <div v-if="jokers.randomPerson.used" class="absolute inset-0 flex items-center justify-center">
+                <div class="w-full h-0.5 bg-red-500 transform rotate-45"></div>
+                <div class="absolute w-full h-0.5 bg-red-500 transform -rotate-45"></div>
+              </div>
+            </div>
+          </button>
+
+          <!-- Reveal Joker -->
+          <button
+            @click="useRevealJoker"
+            :disabled="jokers.reveal.used || gamePhase !== 'reading'"
+            :class="[
+              'p-3 rounded-xl border-2 transition-all duration-300 flex items-center justify-center',
+              jokers.reveal.used 
+                ? 'bg-gray-600/30 border-gray-400/30 opacity-50 cursor-not-allowed' 
+                : 'bg-green-600/30 border-green-400/50 hover:bg-green-600/50 cursor-pointer'
+            ]"
+            title="Reveal Joker - Alle müssen ihre Karten aufdecken"
+          >
+            <div class="relative">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+              </svg>
+              <span class="absolute -bottom-1 -right-1 bg-green-600 text-white text-xs px-1 rounded">👁</span>
+              <!-- Durchstrich wenn benutzt -->
+              <div v-if="jokers.reveal.used" class="absolute inset-0 flex items-center justify-center">
+                <div class="w-full h-0.5 bg-red-500 transform rotate-45"></div>
+                <div class="absolute w-full h-0.5 bg-red-500 transform -rotate-45"></div>
+              </div>
+            </div>
+          </button>
+        </div>
+
         <!-- Question Number & Current Reward Info -->
         <div class="text-center">
           <h2 class="text-2xl font-bold text-white mb-2">Frage {{ currentQuestionIndex + 1 }}</h2>
@@ -283,6 +362,7 @@
               <div
                 v-for="(answer, index) in currentQuestion.answers"
                 :key="index"
+                v-show="!hiddenAnswers.includes(index)"
                 class="p-4 rounded-lg font-medium text-left flex items-center gap-3 min-h-[60px] transition-all duration-500"
                 :class="getAnswerDisplayClass(index)"
               >
@@ -322,6 +402,34 @@
             Wer die Antwort nicht wusste, trinkt: {{ currentReward?.name }}! 🍻
           </div>
         </div>
+
+        <!-- Joker Feedback Messages -->
+        <div v-if="jokerMessage" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50" @click="clearJokerMessage">
+          <div class="bg-gradient-to-br from-purple-600/40 to-blue-600/40 backdrop-blur-lg rounded-xl p-8 border-2 border-purple-400/50 max-w-2xl shadow-2xl" style="animation: gentlePulse 2.5s ease-in-out infinite;">
+            <div class="text-center">
+              <div class="mb-4">
+                <svg v-if="jokerMessage.type === 'fiftyFifty'" class="w-16 h-16 text-blue-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <svg v-else-if="jokerMessage.type === 'randomPerson'" class="w-16 h-16 text-purple-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                </svg>
+                <svg v-else-if="jokerMessage.type === 'reveal'" class="w-16 h-16 text-green-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+              </div>
+              <h3 class="text-2xl font-bold text-white mb-4">{{ jokerMessage.title }}</h3>
+              <p class="text-white text-lg leading-relaxed">{{ jokerMessage.text }}</p>
+              <button
+                @click="clearJokerMessage"
+                class="mt-6 bg-purple-600 hover:bg-purple-700 text-white py-3 px-6 rounded-lg font-medium transition-all"
+              >
+                Weiter
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -331,6 +439,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { hackeDichtStore } from '../store/hackeDichtStore'
+import { playerStore } from '../store/playerStore'
 import { PasswordUtils } from '../utils/passwordUtils'
 
 export default {
@@ -353,6 +462,15 @@ export default {
     const showProgressScreen = ref(true)
     const currentEventQuestion = ref(null)
     const eventQueue = ref([])
+
+    // Joker System
+    const jokers = ref({
+      fiftyFifty: { used: false },
+      randomPerson: { used: false },
+      reveal: { used: false }
+    })
+    const hiddenAnswers = ref([])
+    const jokerMessage = ref(null)
 
     const currentQuestion = computed(() => {
       if (!game.value || showResults.value) return null
@@ -434,6 +552,9 @@ export default {
     }
 
     const nextQuestion = () => {
+      // Reset hidden answers for next question
+      hiddenAnswers.value = []
+      
       // Check for event questions after current question
       const questionNumber = currentQuestionIndex.value + 1
       const eventQuestions = game.value.eventQuestions[questionNumber] || []
@@ -483,6 +604,81 @@ export default {
       showProgressScreen.value = true
       currentEventQuestion.value = null
       eventQueue.value = []
+      
+      // Reset jokers
+      jokers.value = {
+        fiftyFifty: { used: false },
+        randomPerson: { used: false },
+        reveal: { used: false }
+      }
+      hiddenAnswers.value = []
+      jokerMessage.value = null
+    }
+
+    // Joker Functions
+    const use5050Joker = () => {
+      if (jokers.value.fiftyFifty.used || gamePhase.value !== 'reading') return
+      
+      jokers.value.fiftyFifty.used = true
+      
+      // Find wrong answers (all except the correct one)
+      const wrongAnswers = []
+      for (let i = 0; i < 4; i++) {
+        if (i !== currentQuestion.value.correctAnswer) {
+          wrongAnswers.push(i)
+        }
+      }
+      
+      // Randomly select 2 wrong answers to hide
+      const shuffled = wrongAnswers.sort(() => 0.5 - Math.random())
+      hiddenAnswers.value = shuffled.slice(0, 2)
+      
+      jokerMessage.value = {
+        type: 'fiftyFifty',
+        title: '50/50 Joker aktiviert!',
+        text: `Zwei falsche Antworten wurden entfernt. Es bleiben nur noch zwei Optionen übrig!`
+      }
+    }
+
+    const useRandomPersonJoker = () => {
+      if (jokers.value.randomPerson.used || gamePhase.value !== 'reading') return
+      
+      jokers.value.randomPerson.used = true
+      
+      // Get random player
+      const players = playerStore.getPlayerNames()
+      if (players.length === 0) {
+        jokerMessage.value = {
+          type: 'randomPerson',
+          title: 'Random Person Joker aktiviert!',
+          text: 'Keine Spieler verfügbar. Ihr müsst selbst entscheiden!'
+        }
+        return
+      }
+      
+      const randomPlayer = players[Math.floor(Math.random() * players.length)]
+      
+      jokerMessage.value = {
+        type: 'randomPerson',
+        title: 'Random Person Joker aktiviert!',
+        text: `${randomPlayer} muss ihre/seine Antwort preisgeben und erklären, warum sie/er diese Wahl getroffen hat!`
+      }
+    }
+
+    const useRevealJoker = () => {
+      if (jokers.value.reveal.used || gamePhase.value !== 'reading') return
+      
+      jokers.value.reveal.used = true
+      
+      jokerMessage.value = {
+        type: 'reveal',
+        title: 'Reveal Joker aktiviert!',
+        text: 'Alle Spieler müssen jetzt ihre Karten aufdecken und ihre gewählten Antworten zeigen!'
+      }
+    }
+
+    const clearJokerMessage = () => {
+      jokerMessage.value = null
     }
 
     const initializeGame = async () => {
@@ -490,6 +686,7 @@ export default {
       
       try {
         await hackeDichtStore.loadGames()
+        await playerStore.loadPlayers() // Load players for random person joker
         const gameData = hackeDichtStore.getGame(parseInt(props.gameId))
         
         if (!gameData) {
@@ -532,14 +729,43 @@ export default {
       currentEventQuestion,
       currentReward,
       isLastQuestion,
+      jokers,
+      hiddenAnswers,
+      jokerMessage,
       getProgressLevelClass,
       getAnswerDisplayClass,
       continueFromProgress,
       showAnswer,
       nextQuestion,
       continueAfterEvent,
-      restartGame
+      restartGame,
+      use5050Joker,
+      useRandomPersonJoker,
+      useRevealJoker,
+      clearJokerMessage
     }
   }
 }
 </script>
+
+<style scoped>
+@keyframes slowPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes gentlePulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+}
+</style>
