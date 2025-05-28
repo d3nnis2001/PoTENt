@@ -15,7 +15,6 @@
         <h1 class="text-3xl font-bold text-white mb-2">{{ game?.name || 'Wer wird hacke dicht?' }}</h1>
       </div>
 
-      <!-- Password Required State -->
       <div v-if="needsPassword" class="flex justify-center items-center min-h-[60vh]">
         <div class="bg-white/10 backdrop-blur-lg rounded-xl p-8 border border-white/20 max-w-md text-center">
           <svg class="w-16 h-16 text-yellow-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
