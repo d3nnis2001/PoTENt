@@ -22,7 +22,7 @@
           <button
             type="button"
             @click="showPassword = !showPassword"
-            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-purple-200 hover:text-white"
+            class="absolute right-3 top-1/2 text-purple-200 hover:text-white"
             style="margin-top: 1.5rem; position: relative; float: right; margin-right: 0.75rem; margin-top: -2.25rem;"
           >
             <svg v-if="showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

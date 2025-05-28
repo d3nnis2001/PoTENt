@@ -2,8 +2,8 @@
   <div class="min-h-screen flex items-center justify-center px-4">
     <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 w-full max-w-md border border-white/20">
       <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-white mb-2">Top 10</h1>
-        <p class="text-purple-200">Kartenspiel</p>
+        <h1 class="text-3xl font-bold text-white mb-2">Dennis Playground 🛝</h1>
+        <p class="text-purple-200">Games and More</p>
       </div>
       
       <form @submit.prevent="handleLogin" class="space-y-6">

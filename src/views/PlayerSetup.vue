@@ -5,7 +5,6 @@
       <div class="text-center mb-8">
         <h1 class="text-4xl font-bold text-white mb-4">Spieler hinzufügen</h1>
         <p class="text-purple-200 text-lg">Füge alle Mitspieler hinzu, bevor ihr startet</p>
-        <p class="text-purple-200/70 text-sm mt-2">Einige Spiele verwenden die Spielernamen für personalisierte Inhalte</p>
       </div>
 
       <!-- Add Player Form -->
@@ -145,7 +144,7 @@
       <!-- Continue Button -->
       <div class="flex justify-between items-center">
         <button
-          @click="$router.push('/')"
+          @click="logout"
           class="text-purple-200 hover:text-white flex items-center gap-2"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -206,6 +205,12 @@ export default {
     const editingPlayer = ref(null)
     const editPlayerName = ref('')
     const showClearConfirm = ref(false)
+
+    const logout = () => {
+      localStorage.removeItem('authenticated')
+      router.push('/')
+    }
+
 
     const addPlayer = () => {
       if (!newPlayerName.value.trim()) return
@@ -300,7 +305,8 @@ export default {
       savePlayerEdit,
       cancelEdit,
       clearAllPlayers,
-      continueToGames
+      continueToGames,
+      logout
     }
   }
 }
