@@ -58,7 +58,6 @@ import { useRouter } from 'vue-router'
 import { hackeDichtStore } from '../store/hackeDichtStore'
 import { usePasswordProtection } from '../composables/usePasswordProtection'
 
-// Import Components
 import GalleryHeader from '../components/hacke-dicht/GalleryHeader.vue'
 import SelectedDecksInfo from '../components/hacke-dicht/SelectedDecksInfo.vue'
 import GamesGrid from '../components/hacke-dicht/GamesGrid.vue'
