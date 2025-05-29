@@ -106,7 +106,6 @@ export default {
       emit('submit', password.value)
     }
 
-    // Reset form when modal is closed
     watch(() => props.show, (newVal) => {
       if (!newVal) {
         password.value = ''

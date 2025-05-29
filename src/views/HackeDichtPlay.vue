@@ -47,124 +47,124 @@
       </div>
 
       <!-- Progress Screen (Millionär-Style) -->
-      <div v-else-if="showProgressScreen" class="h-[75vh] flex items-center justify-center">
-        <div class="flex items-center gap-6 w-full max-w-6xl">
+      <div v-else-if="showProgressScreen" class="h-[80vh] flex items-center justify-center">
+        <div class="flex items-center gap-8 w-full max-w-6xl">
           <!-- Drinks Column (Left Side) -->
-          <div class="flex flex-col justify-center space-y-8 min-w-[200px]">
+          <div class="flex flex-col justify-center space-y-6 min-w-[180px]">
             <!-- Drink 3 (Questions 11-15) -->
             <div class="flex items-center justify-center">
-              <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-red-600 to-red-700 rounded-xl shadow-lg border-2 border-red-400/50">
-                <div class="w-12 h-12 flex-shrink-0">
+              <div class="flex items-center gap-2 p-2 bg-gradient-to-r from-red-600 to-red-700 rounded-lg shadow-lg border-2 border-red-400/50">
+                <div class="w-8 h-8 flex-shrink-0">
                   <img 
                     v-if="game.rewards[2]?.image" 
                     :src="game.rewards[2].image" 
                     :alt="game.rewards[2].name" 
-                    class="w-full h-full object-cover rounded-lg"
+                    class="w-full h-full object-cover rounded"
                   >
-                  <div v-else class="w-full h-full bg-white/20 rounded-lg flex items-center justify-center">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                  <div v-else class="w-full h-full bg-white/20 rounded flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                     </svg>
                   </div>
                 </div>
-                <span class="text-white font-bold text-sm">{{ game.rewards[2]?.name || 'Belohnung 3' }}</span>
+                <span class="text-white font-bold text-xs">{{ game.rewards[2]?.name || 'Belohnung 3' }}</span>
               </div>
             </div>
 
             <!-- Spacer for middle questions -->
-            <div class="h-8"></div>
+            <div class="h-4"></div>
 
             <!-- Drink 2 (Questions 6-10) -->
             <div class="flex items-center justify-center">
-              <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-orange-600 to-orange-700 rounded-xl shadow-lg border-2 border-orange-400/50">
-                <div class="w-12 h-12 flex-shrink-0">
+              <div class="flex items-center gap-2 p-2 bg-gradient-to-r from-orange-600 to-orange-700 rounded-lg shadow-lg border-2 border-orange-400/50">
+                <div class="w-8 h-8 flex-shrink-0">
                   <img 
                     v-if="game.rewards[1]?.image" 
                     :src="game.rewards[1].image" 
                     :alt="game.rewards[1].name" 
-                    class="w-full h-full object-cover rounded-lg"
+                    class="w-full h-full object-cover rounded"
                   >
-                  <div v-else class="w-full h-full bg-white/20 rounded-lg flex items-center justify-center">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                  <div v-else class="w-full h-full bg-white/20 rounded flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                     </svg>
                   </div>
                 </div>
-                <span class="text-white font-bold text-sm">{{ game.rewards[1]?.name || 'Belohnung 2' }}</span>
+                <span class="text-white font-bold text-xs">{{ game.rewards[1]?.name || 'Belohnung 2' }}</span>
               </div>
             </div>
 
             <!-- Spacer for bottom questions -->
-            <div class="h-8"></div>
+            <div class="h-4"></div>
 
             <!-- Drink 1 (Questions 1-5) -->
             <div class="flex items-center justify-center">
-              <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-green-600 to-green-700 rounded-xl shadow-lg border-2 border-green-400/50">
-                <div class="w-12 h-12 flex-shrink-0">
+              <div class="flex items-center gap-2 p-2 bg-gradient-to-r from-green-600 to-green-700 rounded-lg shadow-lg border-2 border-green-400/50">
+                <div class="w-8 h-8 flex-shrink-0">
                   <img 
                     v-if="game.rewards[0]?.image" 
                     :src="game.rewards[0].image" 
                     :alt="game.rewards[0].name" 
-                    class="w-full h-full object-cover rounded-lg"
+                    class="w-full h-full object-cover rounded"
                   >
-                  <div v-else class="w-full h-full bg-white/20 rounded-lg flex items-center justify-center">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                  <div v-else class="w-full h-full bg-white/20 rounded flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                     </svg>
                   </div>
                 </div>
-                <span class="text-white font-bold text-sm">{{ game.rewards[0]?.name || 'Belohnung 1' }}</span>
+                <span class="text-white font-bold text-xs">{{ game.rewards[0]?.name || 'Belohnung 1' }}</span>
               </div>
             </div>
           </div>
 
           <!-- Question Ladder (Right Side) -->
-          <div class="flex-1 space-y-1 max-w-2xl">
+          <div class="flex-1 space-y-1 max-w-lg ml-auto">
             <!-- Questions 11-15 (Top) - Red Border -->
-            <div class="space-y-1 mb-2 p-3 rounded-lg border-2 border-red-400/30 bg-red-600/10">
+            <div class="space-y-0.5 mb-1 p-2 rounded-md border border-red-400/30 bg-red-600/10">
               <div 
                 v-for="level in [15, 14, 13, 12, 11]" 
                 :key="level"
-                class="flex items-center justify-between p-2 rounded-lg transition-all duration-300"
+                class="flex items-center justify-between px-2 py-1 rounded transition-all duration-300 text-xs"
                 :class="getProgressLevelClass(level)"
               >
-                <div class="flex items-center gap-3">
-                  <span class="text-lg font-bold min-w-[30px]">{{ level }}</span>
-                  <span class="text-sm">Frage {{ level }}</span>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold min-w-[20px]">{{ level }}</span>
+                  <span>Frage {{ level }}</span>
                 </div>
-                <div class="text-sm font-bold">{{ game.rewards[2]?.name || 'Belohnung 3' }}</div>
+                <div class="font-bold">{{ game.rewards[2]?.name || 'Belohnung 3' }}</div>
               </div>
             </div>
 
             <!-- Questions 6-10 (Middle) - Orange Border -->
-            <div class="space-y-1 mb-2 p-3 rounded-lg border-2 border-orange-400/30 bg-orange-600/10">
+            <div class="space-y-0.5 mb-1 p-2 rounded-md border border-orange-400/30 bg-orange-600/10">
               <div 
                 v-for="level in [10, 9, 8, 7, 6]" 
                 :key="level"
-                class="flex items-center justify-between p-2 rounded-lg transition-all duration-300"
+                class="flex items-center justify-between px-2 py-1 rounded transition-all duration-300 text-xs"
                 :class="getProgressLevelClass(level)"
               >
-                <div class="flex items-center gap-3">
-                  <span class="text-lg font-bold min-w-[30px]">{{ level }}</span>
-                  <span class="text-sm">Frage {{ level }}</span>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold min-w-[20px]">{{ level }}</span>
+                  <span>Frage {{ level }}</span>
                 </div>
-                <div class="text-sm font-bold">{{ game.rewards[1]?.name || 'Belohnung 2' }}</div>
+                <div class="font-bold">{{ game.rewards[1]?.name || 'Belohnung 2' }}</div>
               </div>
             </div>
 
             <!-- Questions 1-5 (Bottom) - Green Border -->
-            <div class="space-y-1 p-3 rounded-lg border-2 border-green-400/30 bg-green-600/10">
+            <div class="space-y-0.5 p-2 rounded-md border border-green-400/30 bg-green-600/10">
               <div 
                 v-for="level in [5, 4, 3, 2, 1]" 
                 :key="level"
-                class="flex items-center justify-between p-2 rounded-lg transition-all duration-300"
+                class="flex items-center justify-between px-2 py-1 rounded transition-all duration-300 text-xs"
                 :class="getProgressLevelClass(level)"
               >
-                <div class="flex items-center gap-3">
-                  <span class="text-lg font-bold min-w-[30px]">{{ level }}</span>
-                  <span class="text-sm">Frage {{ level }}</span>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold min-w-[20px]">{{ level }}</span>
+                  <span>Frage {{ level }}</span>
                 </div>
-                <div class="text-sm font-bold">{{ game.rewards[0]?.name || 'Belohnung 1' }}</div>
+                <div class="font-bold">{{ game.rewards[0]?.name || 'Belohnung 1' }}</div>
               </div>
             </div>
           </div>
@@ -273,10 +273,7 @@
             title="50/50 Joker - Entfernt 2 falsche Antworten"
           >
             <div class="relative">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              <span class="absolute -bottom-1 -right-1 bg-blue-600 text-white text-xs px-1 rounded">50/50</span>
+              <img :src="joker50" alt="Joker 50/50" class="w-14 h-14" />
               <!-- Durchstrich wenn benutzt -->
               <div v-if="jokers.fiftyFifty.used" class="absolute inset-0 flex items-center justify-center">
                 <div class="w-full h-0.5 bg-red-500 transform rotate-45"></div>
@@ -298,10 +295,7 @@
             title="Random Person Joker - Wählt zufällig einen Spieler aus"
           >
             <div class="relative">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
-              </svg>
-              <span class="absolute -bottom-1 -right-1 bg-purple-600 text-white text-xs px-1 rounded">?</span>
+              <img :src="jokerrandom" alt="Joker Random" class="w-14 h-14" />
               <!-- Durchstrich wenn benutzt -->
               <div v-if="jokers.randomPerson.used" class="absolute inset-0 flex items-center justify-center">
                 <div class="w-full h-0.5 bg-red-500 transform rotate-45"></div>
@@ -323,11 +317,7 @@
             title="Reveal Joker - Alle müssen ihre Karten aufdecken"
           >
             <div class="relative">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-              </svg>
-              <span class="absolute -bottom-1 -right-1 bg-green-600 text-white text-xs px-1 rounded">👁</span>
+              <img :src="jokerreveal" alt="Joker Reveal" class="w-14 h-14" />
               <!-- Durchstrich wenn benutzt -->
               <div v-if="jokers.reveal.used" class="absolute inset-0 flex items-center justify-center">
                 <div class="w-full h-0.5 bg-red-500 transform rotate-45"></div>
@@ -361,7 +351,6 @@
               <div
                 v-for="(answer, index) in currentQuestion.answers"
                 :key="index"
-                v-show="!hiddenAnswers.includes(index)"
                 class="p-4 rounded-lg font-medium text-left flex items-center gap-3 min-h-[60px] transition-all duration-500"
                 :class="getAnswerDisplayClass(index)"
               >
@@ -407,16 +396,9 @@
           <div class="bg-gradient-to-br from-purple-600/40 to-blue-600/40 backdrop-blur-lg rounded-xl p-8 border-2 border-purple-400/50 max-w-2xl shadow-2xl" style="animation: gentlePulse 2.5s ease-in-out infinite;">
             <div class="text-center">
               <div class="mb-4">
-                <svg v-if="jokerMessage.type === 'fiftyFifty'" class="w-16 h-16 text-blue-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <svg v-else-if="jokerMessage.type === 'randomPerson'" class="w-16 h-16 text-purple-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
-                </svg>
-                <svg v-else-if="jokerMessage.type === 'reveal'" class="w-16 h-16 text-green-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                </svg>
+                <img v-if="jokerMessage.type === 'fiftyFifty'" :src="joker50" alt="50/50 Joker" class="w-16 h-16 mx-auto" />
+                <img v-else-if="jokerMessage.type === 'randomPerson'" :src="jokerrandom" alt="Random Person Joker" class="w-16 h-16 mx-auto" />
+                <img v-else-if="jokerMessage.type === 'reveal'" :src="jokerreveal" alt="Reveal Joker" class="w-16 h-16 mx-auto" />
               </div>
               <h3 class="text-2xl font-bold text-white mb-4">{{ jokerMessage.title }}</h3>
               <p class="text-white text-lg leading-relaxed">{{ jokerMessage.text }}</p>
@@ -440,6 +422,9 @@ import { useRouter } from 'vue-router'
 import { hackeDichtStore } from '../store/hackeDichtStore'
 import { playerStore } from '../store/playerStore'
 import { PasswordUtils } from '../utils/passwordUtils'
+import joker50 from '../assets/5050.png'
+import jokerrandom from '../assets/RandomPerson.png'
+import jokerreveal from '../assets/RevealJoker.png'
 
 export default {
   name: 'HackeDichtPlay',
@@ -529,11 +514,18 @@ export default {
     }
 
     const getAnswerDisplayClass = (index) => {
+      const isHidden = hiddenAnswers.value.includes(index)
+      
       if (gamePhase.value === 'reading') {
+        if (isHidden) {
+          return 'bg-white/5 text-white/30 border-2 border-white/10 opacity-30'
+        }
         return 'bg-white/20 text-white border-2 border-white/30'
       } else if (gamePhase.value === 'showing_answer') {
         if (index === currentQuestion.value.correctAnswer) {
           return 'bg-green-600 text-white border-2 border-green-400 animate-pulse shadow-lg shadow-green-400/50'
+        } else if (isHidden) {
+          return 'bg-white/5 text-white/20 border-2 border-white/10 opacity-30'
         } else {
           return 'bg-white/10 text-white/50 border-2 border-white/20'
         }
@@ -741,7 +733,10 @@ export default {
       use5050Joker,
       useRandomPersonJoker,
       useRevealJoker,
-      clearJokerMessage
+      clearJokerMessage,
+      joker50,
+      jokerreveal,
+      jokerrandom
     }
   }
 }
