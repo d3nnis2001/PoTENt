@@ -158,6 +158,8 @@ import { useRouter } from 'vue-router'
 import { playerStore } from '../store/playerStore'
 import hackeDichtLogo from '../assets/HackeDichtLogo.png'
 import potentLogo from "../assets/PoTENtLogo.png"
+import { lobbyStore } from '../store/lobbyStore.js'
+lobbyStore.createLobby('test123', 'TestHost')
 
 
 export default {
