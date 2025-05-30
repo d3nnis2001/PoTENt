@@ -116,18 +116,38 @@
           </div>
         </div>
 
-        <!-- Coming Soon Game -->
-        <div class="bg-white/5 backdrop-blur-lg rounded-xl p-8 border border-white/10 opacity-60 cursor-not-allowed">
+        <!-- Join Lobby Card -->
+        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-8 border border-white/20 hover:bg-white/15 transition-all duration-300 group cursor-pointer transform hover:scale-105"
+             @click="selectGame('join')">
           <div class="text-center">
-            <div class="bg-gray-600 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-              <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            <div class="bg-gradient-to-r from-green-600 to-emerald-600 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6 group-hover:from-green-700 group-hover:to-emerald-700 transition-all">
+              <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
               </svg>
             </div>
-            <h2 class="text-2xl font-bold text-gray-400 mb-3">Spiel 3</h2>
-            <p class="text-gray-500 text-sm mb-4">Kommt bald...</p>
-            <div class="bg-gray-600/50 text-gray-300 px-4 py-2 rounded-lg text-sm font-medium">
-              In Entwicklung
+            <h2 class="text-2xl font-bold text-white mb-3 group-hover:text-green-200 transition-colors">Lobby beitreten</h2>
+            <p class="text-green-200 text-sm mb-4">Mit Freunden spielen</p>
+            
+            <!-- Features -->
+            <div class="space-y-2 text-left">
+              <div class="flex items-center gap-2 text-green-200 text-sm">
+                <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Multiplayer-Modus</span>
+              </div>
+              <div class="flex items-center gap-2 text-green-200 text-sm">
+                <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>QR-Code oder Lobby-Code</span>
+              </div>
+              <div class="flex items-center gap-2 text-green-200 text-sm">
+                <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Bis zu 8 Spieler</span>
+              </div>
             </div>
           </div>
         </div>
@@ -158,9 +178,6 @@ import { useRouter } from 'vue-router'
 import { playerStore } from '../store/playerStore'
 import hackeDichtLogo from '../assets/HackeDichtLogo.png'
 import potentLogo from "../assets/PoTENtLogo.png"
-import { lobbyStore } from '../store/lobbyStore.js'
-lobbyStore.createLobby('test123', 'TestHost')
-
 
 export default {
   name: 'GameSelection',
@@ -172,6 +189,8 @@ export default {
         router.push('/top10/gallery')
       } else if (gameType === 'hacke-dicht') {
         router.push('/hacke-dicht/gallery')
+      } else if (gameType === 'join') {
+        router.push('/join')
       }
     }
 

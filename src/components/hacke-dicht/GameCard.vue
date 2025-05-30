@@ -1,3 +1,4 @@
+<!-- Update für src/components/hacke-dicht/GameCard.vue -->
 <template>
   <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 group">
     <!-- Game Header -->
@@ -20,6 +21,7 @@
       :game="game"
       :is-playable="isGamePlayable"
       @play="$emit('play', game)"
+      @play-multiplayer="$emit('play-multiplayer', game)"
       @edit="$emit('edit', game)"
     />
 
@@ -52,7 +54,7 @@ export default {
       required: true
     }
   },
-  emits: ['edit', 'play', 'delete'],
+  emits: ['edit', 'play', 'play-multiplayer', 'delete'], // Add new emit
   computed: {
     completedQuestions() {
       return this.game.questions.filter(q => 

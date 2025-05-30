@@ -1,3 +1,4 @@
+<!-- Update für src/components/hacke-dicht/GamesGrid.vue -->
 <template>
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     <GameCard
@@ -6,6 +7,7 @@
       :game="game"
       @edit="$emit('edit-game', game)"
       @play="$emit('play-game', game)"
+      @play-multiplayer="$emit('play-multiplayer', game)"
       @delete="$emit('delete-game', game.id)"
     />
   </div>
@@ -25,6 +27,6 @@ export default {
       required: true
     }
   },
-  emits: ['edit-game', 'play-game', 'delete-game']
+  emits: ['edit-game', 'play-game', 'play-multiplayer', 'delete-game']
 }
 </script>

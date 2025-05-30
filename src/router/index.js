@@ -1,3 +1,4 @@
+// Vollständige src/router/index.js
 import { createRouter, createWebHashHistory } from 'vue-router'
 import Login from '../views/Login.vue'
 import PlayerSetup from '../views/PlayerSetup.vue'
@@ -8,6 +9,10 @@ import PlayDeck from '../views/PlayDeck.vue'
 import HackeDichtGallery from '../views/HackeDichtGallery.vue'
 import HackeDichtEditor from '../views/HackeDichtEditor.vue'
 import HackeDichtPlay from '../views/HackeDichtPlay.vue'
+import JoinLobby from '../views/JoinLobby.vue'
+import PlayerLobby from '../views/PlayerLobby.vue'
+import HackeDichtLobby from '../views/HackeDichtLobby.vue'
+import HackeDichtPlayMultiplayer from '../views/HackeDichtPlayMultiplayer.vue'
 
 const routes = [
   {
@@ -66,7 +71,34 @@ const routes = [
     component: HackeDichtPlay,
     props: true
   },
-  // Legacy redirects
+  // Multiplayer Lobby Routes
+  {
+    path: '/hacke-dicht/lobby/:gameId',
+    name: 'HackeDichtLobby',
+    component: HackeDichtLobby,
+    props: true
+  },
+  {
+    path: '/hacke-dicht/play-multiplayer/:lobbyCode',
+    name: 'HackeDichtPlayMultiplayer',
+    component: HackeDichtPlayMultiplayer,
+    props: true,
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/join/:lobbyCode?',
+    name: 'JoinLobby',
+    component: JoinLobby,
+    props: route => ({ code: route.params.lobbyCode || '' }),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/lobby/:lobbyCode',
+    name: 'PlayerLobby',
+    component: PlayerLobby,
+    props: true,
+    meta: { requiresAuth: false }
+  },
   {
     path: '/gallery',
     redirect: '/top10/gallery'
@@ -88,6 +120,13 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const isAuthenticated = localStorage.getItem('authenticated') === 'true'
+  
+  // Allow certain routes without authentication
+  const publicRoutes = ['JoinLobby', 'PlayerLobby', 'HackeDichtPlayMultiplayer']
+  if (publicRoutes.includes(to.name)) {
+    next()
+    return
+  }
   
   if (to.name !== 'Login' && !isAuthenticated) {
     next({ name: 'Login' })
