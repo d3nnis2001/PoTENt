@@ -28,6 +28,7 @@
           :games="hackeDichtStore.games"
           @edit-game="editGame"
           @play-game="playGame"
+          @play-multiplayer="playMultiplayer"
           @delete-game="deleteGame"
         />
       </div>
@@ -88,7 +89,20 @@ export default {
       verifyPassword: verifyGamePassword,
       closePasswordModal: closeModal
     } = usePasswordProtection()
-
+    const playMultiplayer = async (game) => {
+      if (!isGamePlayable(game)) {
+        showError('Spiel ist nicht vollständig! Bitte bearbeite es zuerst.')
+        return
+      }
+      
+      if (game.isProtected && !checkGameAccess(game)) {
+        selectedGame.value = game
+        pendingAction.value = 'multiplayer'
+        showPasswordModal.value = true
+      } else {  
+        router.push(`/hacke-dicht/lobby/${game.id}`)
+      }
+    }
     // Computed properties
     const hasLocalData = computed(() => {
       return localStorage.getItem('cardDecks') !== null
@@ -229,7 +243,8 @@ export default {
       playSelectedDecks,
       migrateData,
       verifyPassword,
-      closePasswordModal
+      closePasswordModal,
+      playMultiplayer
     }
   }
 }

@@ -1,4 +1,3 @@
-<!-- Update für src/components/hacke-dicht/GameCard.vue -->
 <template>
   <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 group">
     <!-- Game Header -->
@@ -16,7 +15,7 @@
     <!-- Progress Bar -->
     <GameCardProgress :progress="gameProgress" />
 
-    <!-- Action Buttons -->
+    <!-- Action Buttons - FIX: Korrekter Boolean-Wert -->
     <GameCardActions 
       :game="game"
       :is-playable="isGamePlayable"
@@ -54,7 +53,7 @@ export default {
       required: true
     }
   },
-  emits: ['edit', 'play', 'play-multiplayer', 'delete'], // Add new emit
+  emits: ['edit', 'play', 'play-multiplayer', 'delete'],
   computed: {
     completedQuestions() {
       return this.game.questions.filter(q => 
@@ -74,10 +73,20 @@ export default {
       return Math.min(totalProgress, 100)
     },
     
+    // FIX: Stell sicher dass es ein Boolean ist
     isGamePlayable() {
-      return this.completedQuestions === 15 && 
-             this.game.rewards.every(r => r.name) && 
-             this.game.name
+      const playable = this.completedQuestions === 15 && 
+                      this.game.rewards.every(r => r.name) && 
+                      !!this.game.name
+      
+      console.log('Game playable check:', {
+        name: this.game.name,
+        completed: this.completedQuestions,
+        rewards: this.game.rewards.every(r => r.name),
+        result: playable
+      })
+      
+      return playable
     }
   }
 }

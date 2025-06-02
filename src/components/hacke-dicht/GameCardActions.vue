@@ -1,4 +1,3 @@
-<!-- Update für src/components/hacke-dicht/GameCardActions.vue -->
 <template>
   <div class="grid grid-cols-3 gap-2">
     <!-- Solo Play Button -->
@@ -51,9 +50,20 @@ export default {
     },
     isPlayable: {
       type: Boolean,
-      required: true
+      required: true,
+      // FIX: Default value für Safety
+      default: false
     }
   },
-  emits: ['play', 'edit', 'play-multiplayer']
+  emits: ['play', 'edit', 'play-multiplayer'],
+  
+  // FIX: Debug Props
+  mounted() {
+    console.log('GameCardActions mounted:', {
+      game: this.game?.name,
+      isPlayable: this.isPlayable,
+      isPlayableType: typeof this.isPlayable
+    })
+  }
 }
 </script>

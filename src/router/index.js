@@ -1,4 +1,3 @@
-// Vollständige src/router/index.js
 import { createRouter, createWebHashHistory } from 'vue-router'
 import Login from '../views/Login.vue'
 import PlayerSetup from '../views/PlayerSetup.vue'
@@ -71,19 +70,21 @@ const routes = [
     component: HackeDichtPlay,
     props: true
   },
-  // Multiplayer Lobby Routes
+  // FIX: Korrekte Multiplayer Lobby Route
   {
     path: '/hacke-dicht/lobby/:gameId',
     name: 'HackeDichtLobby',
     component: HackeDichtLobby,
-    props: true
+    props: true,
+    meta: { requiresAuth: true } // Host muss eingeloggt sein
   },
+  // Multiplayer Game Routes
   {
     path: '/hacke-dicht/play-multiplayer/:lobbyCode',
     name: 'HackeDichtPlayMultiplayer',
     component: HackeDichtPlayMultiplayer,
     props: true,
-    meta: { requiresAuth: false }
+    meta: { requiresAuth: false } // Spieler müssen nicht eingeloggt sein
   },
   {
     path: '/join/:lobbyCode?',
@@ -99,6 +100,7 @@ const routes = [
     props: true,
     meta: { requiresAuth: false }
   },
+  // Legacy redirects
   {
     path: '/gallery',
     redirect: '/top10/gallery'
