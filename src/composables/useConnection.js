@@ -26,35 +26,39 @@ export function useConnection() {
   }
 
   // Auto-reconnect logic
-  const attemptReconnect = async () => {
-    if (retryCount.value >= maxRetries) {
-      showError('Verbindung konnte nicht wiederhergestellt werden')
-      return false
-    }
-
-    try {
-      retryCount.value++
-      
-      if (lobbyStore.currentLobby?.code) {
-        const success = await lobbyStore.reconnectToLobby(lobbyStore.currentLobby.code)
-        
-        if (success) {
-          retryCount.value = 0
-          showSuccess('Verbindung wiederhergestellt!')
-          return true
-        }
-      }
-      
-      // Retry after delay
-      setTimeout(attemptReconnect, retryDelay * retryCount.value)
-      return false
-      
-    } catch (error) {
-      console.error('Reconnect attempt failed:', error)
-      setTimeout(attemptReconnect, retryDelay * retryCount.value)
-      return false
-    }
+const attemptReconnect = async () => {
+  if (retryCount.value >= maxRetries) {
+    showError('Verbindung konnte nicht wiederhergestellt werden')
+    return false
   }
+
+  try {
+    retryCount.value++
+    
+    // FIX: Prüfe canRejoinLobby bevor reconnect
+    if (lobbyStore.canRejoinLobby()) {
+      const success = await lobbyStore.reconnectToLobby(lobbyStore.currentLobby.code)
+      
+      if (success) {
+        retryCount.value = 0
+        success('Verbindung wiederhergestellt!')  // FIX: Verwende success statt showSuccess
+        return true
+      }
+    } else {
+      console.log('Cannot rejoin lobby - missing player/lobby data')
+      return false
+    }
+    
+    // Retry after delay
+    setTimeout(attemptReconnect, retryDelay * retryCount.value)
+    return false
+    
+  } catch (error) {
+    console.error('Reconnect attempt failed:', error)
+    setTimeout(attemptReconnect, retryDelay * retryCount.value)
+    return false
+  }
+}
 
   // Manual retry
   const manualRetry = async () => {

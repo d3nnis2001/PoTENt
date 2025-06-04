@@ -381,32 +381,33 @@ export default {
     }
 
     const startGame = async () => {
-      console.log('Attempting to start game...', {
-        canStart: canStartGame.value,
-        isHost: isHost.value,
-        lobby: !!currentLobby.value,
-        lobbyCode: currentLobby.value?.code
-      })
-      
-      if (!canStartGame.value) {
-        console.error('Cannot start game - conditions not met')
-        showError('Spiel kann nicht gestartet werden')
-        return
-      }
-      
-      isStartingGame.value = true
-      try {
-        await startGameAction()
-        success('Spiel gestartet!')
-        console.log('Game started, redirecting to multiplayer...')
-        // Auto-redirect to multiplayer game view
-        router.push(`/hacke-dicht/play-multiplayer/${currentLobby.value.code}`)
-      } catch (error) {
-        console.error('Failed to start game:', error)
-        showError('Fehler beim Starten des Spiels: ' + error.message)
-      } finally {
-        isStartingGame.value = false
-      }
+        console.log('Attempting to start game...', {
+            canStart: canStartGame.value,
+            isHost: isHost.value,
+            lobby: !!currentLobby.value,
+            lobbyCode: currentLobby.value?.code
+        })
+        
+        if (!canStartGame.value || !currentLobby.value) {  // FIX: Prüfe auch currentLobby
+            console.error('Cannot start game - conditions not met')
+            showError('Spiel kann nicht gestartet werden')
+            return
+        }
+        
+        isStartingGame.value = true
+        const lobbyCode = currentLobby.value.code  // FIX: Code zwischenspeichern
+        
+        try {
+            await startGameAction()
+            success('Spiel gestartet!')
+            console.log('Game started, redirecting to multiplayer...')
+            router.push(`/hacke-dicht/play-multiplayer/${lobbyCode}`)
+        } catch (error) {
+            console.error('Failed to start game:', error)
+            showError('Fehler beim Starten des Spiels: ' + error.message)
+        } finally {
+            isStartingGame.value = false
+        }
     }
 
     const copyLobbyCode = async () => {
@@ -475,10 +476,6 @@ export default {
 
     onUnmounted(async () => {
       console.log('HackeDichtLobby unmounting...')
-      // Clean up lobby if we're the host
-      if (isHost.value && currentLobby.value) {
-        await leaveLobby()
-      }
     })
 
     // Handle browser back/refresh

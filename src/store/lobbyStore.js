@@ -322,48 +322,60 @@ export const lobbyStore = reactive({
     }
   },
   
-  // Reconnect functionality
-  async reconnectToLobby(lobbyCode) {
-    if (!this.currentPlayer) return false
+  // Reconnect functionalityy
+    async reconnectToLobby(lobbyCode) {
+    // FIX: Prüfe currentPlayer bevor du auf .id zugreifst
+    if (!this.currentPlayer || !this.currentPlayer.id) {
+        console.error('Cannot reconnect: No current player data')
+        return false
+    }
     
     try {
-      this.connectionStatus = 'connecting'
-      
-      // Check if lobby still exists
-      const lobbyRef = dbRef(realtimeDb, `lobbies/${lobbyCode}`)
-      const lobbySnapshot = await get(lobbyRef)
-      
-      if (!lobbySnapshot.exists()) {
+        this.connectionStatus = 'connecting'
+        
+        // Check if lobby still exists
+        const lobbyRef = dbRef(realtimeDb, `lobbies/${lobbyCode}`)
+        const lobbySnapshot = await get(lobbyRef)
+        
+        if (!lobbySnapshot.exists()) {
         throw new Error('Lobby existiert nicht mehr')
-      }
-      
-      const lobbyData = lobbySnapshot.val()
-      
-      // Check if player still exists in lobby
-      if (!lobbyData.players[this.currentPlayer.id]) {
+        }
+        
+        const lobbyData = lobbySnapshot.val()
+        
+        // Check if player still exists in lobby
+        if (!lobbyData.players[this.currentPlayer.id]) {
         throw new Error('Du wurdest aus der Lobby entfernt')
-      }
-      
-      // Update player online status
-      const playerPresenceRef = dbRef(realtimeDb, `lobbies/${lobbyCode}/players/${this.currentPlayer.id}/isOnline`)
-      await set(playerPresenceRef, true)
-      
-      // Re-subscribe to lobby updates
-      this.subscribeToLobby(lobbyCode)
-      this.connectionStatus = 'connected'
-      
-      // Restart heartbeat
-      this.startHeartbeat()
-      
-      console.log('Reconnected to lobby:', lobbyCode)
-      return true
-      
+        }
+        
+        // Update player online status
+        const playerPresenceRef = dbRef(realtimeDb, `lobbies/${lobbyCode}/players/${this.currentPlayer.id}/isOnline`)
+        await set(playerPresenceRef, true)
+        
+        // Re-subscribe to lobby updates
+        this.subscribeToLobby(lobbyCode)
+        this.connectionStatus = 'connected'
+        
+        // Restart heartbeat
+        this.startHeartbeat()
+        
+        console.log('Reconnected to lobby:', lobbyCode)
+        return true
+        
     } catch (error) {
-      console.error('Reconnect failed:', error)
-      this.connectionStatus = 'disconnected'
-      return false
+        console.error('Reconnect failed:', error)
+        this.connectionStatus = 'disconnected'
+        return false
     }
-  },
+    },
+
+    // Check if current player can rejoin
+    canRejoinLobby() {
+    return this.currentPlayer && 
+            this.currentPlayer.id && 
+            this.currentLobby && 
+            this.currentLobby.code
+    },
   
   // Check if current player can rejoin
   canRejoinLobby() {
