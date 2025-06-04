@@ -1,3 +1,4 @@
+// src/router/index.js - Fixed Routes
 import { createRouter, createWebHashHistory } from 'vue-router'
 import Login from '../views/Login.vue'
 import PlayerSetup from '../views/PlayerSetup.vue'
@@ -70,7 +71,7 @@ const routes = [
     component: HackeDichtPlay,
     props: true
   },
-  // FIX: Korrekte Multiplayer Lobby Route
+  // FIX: Korrekte Multiplayer Lobby Route für Host
   {
     path: '/hacke-dicht/lobby/:gameId',
     name: 'HackeDichtLobby',
@@ -86,6 +87,7 @@ const routes = [
     props: true,
     meta: { requiresAuth: false } // Spieler müssen nicht eingeloggt sein
   },
+  // Join Lobby Routes (für Spieler)
   {
     path: '/join/:lobbyCode?',
     name: 'JoinLobby',

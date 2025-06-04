@@ -2,6 +2,12 @@ import { initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
 import { getDatabase } from 'firebase/database'
 
+console.log('Firebase Environment Variables Check:')
+console.log('VITE_API_KEY:', import.meta.env.VITE_API_KEY ? 'Present' : 'Missing')
+console.log('VITE_AUTH_DOMAIN:', import.meta.env.VITE_AUTH_DOMAIN ? 'Present' : 'Missing')
+console.log('VITE_PROJECT_ID:', import.meta.env.VITE_PROJECT_ID ? 'Present' : 'Missing')
+console.log('VITE_DATABASE_URL:', import.meta.env.VITE_DATABASE_URL ? 'Present' : 'Missing')
+
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_API_KEY,
   authDomain: import.meta.env.VITE_AUTH_DOMAIN,
@@ -13,9 +19,24 @@ const firebaseConfig = {
   databaseURL: import.meta.env.VITE_DATABASE_URL
 };
 
-const app = initializeApp(firebaseConfig)
+console.log('Firebase Config:', firebaseConfig)
 
-export const db = getFirestore(app)
-export const realtimeDb = getDatabase(app)
+let app, db, realtimeDb
 
+try {
+  app = initializeApp(firebaseConfig)
+  console.log('Firebase App initialized successfully')
+  
+  db = getFirestore(app)
+  console.log('Firestore initialized successfully')
+  
+  realtimeDb = getDatabase(app)
+  console.log('Realtime Database initialized successfully')
+  
+} catch (error) {
+  console.error('Firebase initialization error:', error)
+  throw error
+}
+
+export { db, realtimeDb }
 export default app

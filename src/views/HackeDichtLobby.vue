@@ -1,502 +1,519 @@
-<!-- src/views/HackeDichtGallery.vue - Complete Final Version -->
+<!-- src/views/HackeDichtLobby.vue - Debug Version -->
 <template>
-  <div class="min-h-screen p-4">
-    <div class="max-w-6xl mx-auto">
+  <div class="min-h-screen p-4 bg-gradient-to-br from-orange-900 via-red-900 to-pink-900">
+    <div class="max-w-4xl mx-auto">
       
-      <!-- Gallery Header -->
-      <div class="flex justify-between items-center mb-8">
-        <div>
-          <button
-            @click="$router.push('/games')"
-            class="text-purple-200 hover:text-white mb-2 flex items-center gap-2"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-            </svg>
-            Zurück zur Spielauswahl
-          </button>
-          <h1 class="text-3xl font-bold text-white">Wer wird hacke dicht?</h1>
-          <p class="text-orange-200 text-sm">Deine Trinkquiz-Spiele</p>
-        </div>
-        
-        <div class="flex gap-4">
-          <!-- Migration Button -->
-          <button
-            v-if="hasLocalData"
-            @click="migrateData"
-            class="bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-yellow-700 flex items-center gap-2"
-          >
-            <span>📤</span>
-            Lokale Daten übertragen
-          </button>
-          
-          <!-- Create New Game Button -->
-          <button
-            @click="createNewGame"
-            class="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-3 rounded-lg font-medium hover:from-orange-600 hover:to-red-600 transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-            </svg>
-            Neues Quiz erstellen
-          </button>
-        </div>
+      <!-- Debug Info -->
+      <div class="bg-red-900/50 border border-red-500 rounded-lg p-4 mb-4 text-white text-xs">
+        <h3 class="font-bold mb-2">Debug Info:</h3>
+        <div>Game ID: {{ gameId }}</div>
+        <div>Game Loaded: {{ !!game }}</div>
+        <div>Current Lobby: {{ !!currentLobby }}</div>
+        <div>Lobby Code: {{ currentLobby?.code || 'None' }}</div>
+        <div>Is Host: {{ isHost }}</div>
+        <div>Connection Status: {{ connectionStatus }}</div>
+        <div>Can Start Game: {{ canStartGame }}</div>
+        <div>Player Count: {{ onlinePlayerCount }}</div>
+        <div>Error: {{ error || 'None' }}</div>
       </div>
-
-      <!-- Games Grid or Empty State -->
-      <div v-if="hackeDichtStore.games.length > 0">
-        <!-- Games Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div
-            v-for="game in hackeDichtStore.games"
-            :key="game.id"
-            class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 group"
-          >
-            <!-- Game Header -->
-            <div class="flex justify-between items-start mb-4">
-              <div class="flex-1">
-                <div class="flex items-center gap-2 mb-1">
-                  <h3 class="text-lg font-semibold text-white group-hover:text-orange-200 transition-colors">
-                    {{ game.name }}
-                  </h3>
-                  <!-- Password Protection Indicator -->
-                  <svg 
-                    v-if="game.isProtected"
-                    class="w-5 h-5 text-yellow-400" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                    title="Passwortgeschützt"
-                  >
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                  </svg>
-                </div>
-                <p v-if="game.description" class="text-orange-200 text-sm mt-1">
-                  {{ game.description }}
-                </p>
-              </div>
-              <!-- Delete Button -->
-              <button
-                @click="deleteGame(game.id)"
-                class="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                </svg>
-              </button>
-            </div>
-
-            <!-- Game Stats -->
-            <div class="flex justify-between items-center mb-4 text-sm">
-              <span class="text-orange-200">
-                {{ getCompletedQuestions(game) }}/15 Fragen
-              </span>
-              <span class="text-orange-200">
-                {{ getEventQuestionsCount(game) }} Events
-              </span>
-            </div>
-
-            <!-- Rewards Preview -->
-            <div class="flex gap-2 mb-4">
-              <div
-                v-for="(reward, index) in game.rewards"
-                :key="index"
-                class="flex-1 bg-white/5 rounded-lg p-2 text-center"
-              >
-                <div v-if="reward.image" class="w-8 h-8 mx-auto mb-1">
-                  <img :src="reward.image" :alt="reward.name" class="w-full h-full object-cover rounded">
-                </div>
-                <div v-else class="w-8 h-8 mx-auto mb-1 bg-white/20 rounded flex items-center justify-center">
-                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                  </svg>
-                </div>
-                <span class="text-xs text-orange-200">{{ reward.name || 'Belohnung' }}</span>
-              </div>
-            </div>
-
-            <!-- Progress Bar -->
-            <div class="w-full bg-white/20 rounded-full h-2 mb-4">
-              <div 
-                class="bg-gradient-to-r from-orange-600 to-red-600 h-2 rounded-full transition-all duration-300"
-                :style="{ width: `${getGameProgress(game)}%` }"
-              ></div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="grid grid-cols-3 gap-2">
-              <!-- Solo Play Button -->
-              <button
-                @click="playGame(game)"
-                :disabled="!isGamePlayable(game)"
-                class="bg-gradient-to-r from-orange-600 to-red-600 text-white py-2 px-3 rounded-lg font-medium hover:from-orange-700 hover:to-red-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 text-sm"
-              >
-                <svg v-if="game.isProtected" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                </svg>
-                <svg v-else class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8m2-10h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                </svg>
-                Solo
-              </button>
-              
-              <!-- Multiplayer Button -->
-              <button
-                @click="playMultiplayer(game)"
-                :disabled="!isGamePlayable(game)"
-                class="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-2 px-3 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 text-sm"
-              >
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
-                </svg>
-                Multi
-              </button>
-              
-              <!-- Edit Button -->
-              <button
-                @click="editGame(game)"
-                class="bg-white/20 text-white py-2 px-3 rounded-lg font-medium hover:bg-white/30 transition-all duration-200 flex items-center justify-center gap-1 text-sm"
-              >
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                </svg>
-                Edit
-              </button>
-            </div>
-
-            <!-- Game Status -->
-            <div class="mt-3 text-center">
-              <span 
-                :class="[
-                  'inline-block px-3 py-1 rounded-full text-xs font-medium',
-                  getStatusClass(game)
-                ]"
-              >
-                {{ getStatusText(game) }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Empty State -->
-      <div v-else class="text-center py-12">
-        <svg class="w-16 h-16 text-orange-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-        </svg>
-        <h2 class="text-xl font-semibold text-white mb-2">Noch keine Quiz-Spiele</h2>
-        <p class="text-orange-200 mb-6">Erstelle dein erstes "Wer wird hacke dicht?" Quiz!</p>
+      
+      <!-- Header -->
+      <div class="text-center mb-8">
         <button
-          @click="createNewGame"
-          class="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-3 rounded-lg font-medium hover:from-orange-600 hover:to-red-600 transform hover:scale-105 transition-all duration-200"
+          @click="$router.push('/hacke-dicht/gallery')"
+          class="text-orange-200 hover:text-white mb-4 inline-flex items-center gap-2"
         >
-          Quiz erstellen
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+          Zurück zur Galerie
         </button>
+        <h1 class="text-3xl font-bold text-white mb-2">{{ game?.name || 'Quiz Lobby' }}</h1>
+        <p class="text-orange-200">Host-Modus - Erstelle eine Lobby für Mitspieler</p>
       </div>
 
-      <!-- Password Modal -->
-      <div v-if="showPasswordModal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" @click="closePasswordModal">
-        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 w-full max-w-md border border-white/20" @click.stop>
-          <div class="text-center mb-6">
-            <svg class="w-12 h-12 text-yellow-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-            </svg>
-            <h2 class="text-xl font-bold text-white mb-2">{{ selectedGame?.name }} entsperren</h2>
-            <p class="text-purple-200 text-sm">Dieses Quiz ist passwortgeschützt</p>
-          </div>
+      <!-- Loading State -->
+      <div v-if="isLoading" class="text-center py-8">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        <p class="text-white mt-2">Lade Quiz...</p>
+      </div>
+
+      <!-- Game Not Found -->
+      <div v-else-if="!game" class="text-center py-12">
+        <svg class="w-16 h-16 text-red-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+        </svg>
+        <h2 class="text-xl font-semibold text-white mb-2">Quiz nicht gefunden</h2>
+        <p class="text-orange-200">Das angeforderte Quiz existiert nicht oder wurde gelöscht.</p>
+      </div>
+
+      <!-- Host Setup Form -->
+      <div v-else-if="!currentLobby" class="max-w-md mx-auto">
+        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 mb-6">
+          <h2 class="text-xl font-bold text-white mb-4">Lobby erstellen</h2>
           
-          <form @submit.prevent="verifyPassword" class="space-y-4">
+          <form @submit.prevent="createLobby" class="space-y-4">
             <div>
-              <label class="block text-white font-medium mb-2">Passwort</label>
+              <label class="block text-white font-medium mb-2">Dein Name (Host)</label>
               <input
-                v-model="passwordInput"
-                :type="showPassword ? 'text' : 'password'"
-                class="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400"
-                placeholder="Passwort eingeben..."
+                v-model="hostName"
+                type="text"
+                maxlength="20"
+                class="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                placeholder="Dein Spielername"
                 required
               />
-              <button
-                type="button"
-                @click="showPassword = !showPassword"
-                class="absolute right-3 top-1/2 text-purple-200 hover:text-white"
-                style="margin-top: 1.5rem; position: relative; float: right; margin-right: 0.75rem; margin-top: -2.25rem;"
-              >
-                <svg v-if="showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
-                </svg>
-                <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                </svg>
-              </button>
             </div>
-            
-            <div v-if="passwordError" class="text-red-300 text-sm text-center">
-              {{ passwordError }}
-            </div>
-            
-            <div class="flex gap-3">
-              <button
-                type="submit"
-                :disabled="!passwordInput.trim() || isVerifying"
-                class="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {{ isVerifying ? 'Überprüfe...' : 'Entsperren' }}
-              </button>
-              <button
-                type="button"
-                @click="closePasswordModal"
-                :disabled="isVerifying"
-                class="bg-white/20 text-white py-3 px-6 rounded-lg font-medium hover:bg-white/30 disabled:opacity-50"
-              >
-                Abbrechen
-              </button>
-            </div>
+
+            <button
+              type="submit"
+              :disabled="!hostName.trim() || isCreatingLobby"
+              class="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-orange-700 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+            >
+              <svg v-if="isCreatingLobby" class="animate-spin w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              {{ isCreatingLobby ? 'Erstelle Lobby...' : 'Lobby erstellen' }}
+            </button>
           </form>
         </div>
+
+        <!-- Game Info -->
+        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
+          <h3 class="text-lg font-bold text-white mb-3">Quiz-Info</h3>
+          <div class="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <div class="text-2xl text-orange-300 mb-1">15</div>
+              <div class="text-xs text-orange-200">Fragen</div>
+            </div>
+            <div>
+              <div class="text-2xl text-red-300 mb-1">30</div>
+              <div class="text-xs text-red-200">Sekunden</div>
+            </div>
+            <div>
+              <div class="text-2xl text-purple-300 mb-1">3</div>
+              <div class="text-xs text-purple-200">Joker</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Host Lobby Dashboard -->
+      <div v-else class="space-y-6">
+        
+        <!-- Lobby Code Display -->
+        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 text-center">
+          <h2 class="text-2xl font-bold text-white mb-4">Lobby-Code</h2>
+          <div class="bg-white/20 rounded-lg p-4 mb-4">
+            <div class="text-4xl font-bold text-white tracking-wider mb-2">{{ currentLobby.code }}</div>
+            <p class="text-orange-200 text-sm">Spieler können mit diesem Code beitreten</p>
+          </div>
+          
+          <!-- QR Code oder Join Link -->
+          <div class="flex gap-3 justify-center">
+            <button
+              @click="copyLobbyCode"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+              Code kopieren
+            </button>
+            
+            <button
+              @click="copyJoinUrl"
+              class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+              </svg>
+              Link kopieren
+            </button>
+          </div>
+        </div>
+
+        <!-- Game Status & Controls -->
+        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
+          <div class="flex justify-between items-center mb-4">
+            <div>
+              <h3 class="text-xl font-bold text-white">Spiel-Status</h3>
+              <p class="text-orange-200 text-sm">{{ gameStatusText }}</p>
+            </div>
+            <div class="text-right">
+              <div class="text-2xl font-bold text-white">{{ onlinePlayerCount }}/8</div>
+              <div class="text-orange-200 text-sm">Spieler</div>
+            </div>
+          </div>
+
+          <!-- Start Game Button -->
+          <button
+            v-if="canStartGame"
+            @click="startGame"
+            :disabled="isStartingGame"
+            class="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+          >
+            <svg v-if="isStartingGame" class="animate-spin w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            {{ isStartingGame ? 'Starte Spiel...' : 'Spiel starten' }}
+          </button>
+          
+          <div v-else-if="onlinePlayerCount < 2" class="text-center py-4">
+            <p class="text-orange-200">Mindestens 2 Spieler werden benötigt</p>
+          </div>
+        </div>
+
+        <!-- Players List -->
+        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
+          <h3 class="text-xl font-bold text-white mb-4">Mitspieler ({{ onlinePlayerCount }})</h3>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div
+              v-for="player in playerList"
+              :key="player.id"
+              class="bg-white/5 rounded-lg p-4 flex items-center gap-3"
+            >
+              <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-xl">
+                {{ player.icon }}
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-white font-medium">{{ player.name }}</span>
+                  <span v-if="player.isHost" class="bg-yellow-600/30 text-yellow-200 px-2 py-1 rounded-full text-xs">
+                    👑 Host
+                  </span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <div :class="[
+                    'w-2 h-2 rounded-full',
+                    player.isOnline ? 'bg-green-400' : 'bg-gray-400'
+                  ]"></div>
+                  <span :class="[
+                    'text-xs',
+                    player.isOnline ? 'text-green-300' : 'text-gray-400'
+                  ]">
+                    {{ player.isOnline ? 'Online' : 'Offline' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty Players State -->
+          <div v-if="onlinePlayerCount <= 1" class="text-center py-6">
+            <div class="text-white/50 text-sm mb-2">
+              Warte auf Mitspieler...
+            </div>
+            <div class="text-orange-200 text-xs">
+              Teile den Lobby-Code oder Link mit deinen Freunden
+            </div>
+          </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
+          <h4 class="text-lg font-bold text-white mb-3">So funktioniert's</h4>
+          <ol class="text-orange-200 text-sm space-y-2">
+            <li class="flex items-start gap-2">
+              <span class="text-orange-400 font-bold">1.</span>
+              <span>Teile den Lobby-Code mit deinen Freunden</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-orange-400 font-bold">2.</span>
+              <span>Mitspieler gehen auf <code class="bg-white/20 px-1 rounded">{{ window.location.origin }}/#/join</code></span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-orange-400 font-bold">3.</span>
+              <span>Wenn alle da sind, starte das Spiel</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-orange-400 font-bold">4.</span>
+              <span>Du moderierst, Mitspieler antworten auf ihren Handys</span>
+            </li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Error Display -->
+      <div v-if="error" class="mt-6 p-4 bg-red-600/20 border border-red-400/30 rounded-lg">
+        <p class="text-red-300 text-sm text-center">{{ error }}</p>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useLobby } from '../composables/useLobby'
 import { hackeDichtStore } from '../store/hackeDichtStore'
-import { usePasswordProtection } from '../composables/usePasswordProtection'
+import { playerStore } from '../store/playerStore'
 import { globalToast } from '../composables/useToast'
+import { generateJoinUrl } from '../utils/lobbyUtils'
 
 export default {
-  name: 'HackeDichtGallery',
-  setup() {
+  name: 'HackeDichtLobby',
+  props: {
+    gameId: {
+      type: String,
+      required: true
+    }
+  },
+  setup(props) {
     const router = useRouter()
     const { success, error: showError } = globalToast
     
-    const selectedGame = ref(null)
-    const pendingAction = ref(null) // 'play', 'edit', or 'multiplayer'
-    const showPasswordModal = ref(false)
-    const passwordInput = ref('')
-    const passwordError = ref('')
-    const isVerifying = ref(false)
-    const showPassword = ref(false)
-    
-    // Computed properties
-    const hasLocalData = computed(() => {
-      return localStorage.getItem('cardDecks') !== null
+    const {
+      currentLobby, isHost, currentPlayer, players, gameState,
+      createLobby: createLobbyAction, startGame: startGameAction,
+      connectionStatus, error, leaveLobby
+    } = useLobby()
+
+    // Local state
+    const game = ref(null)
+    const isLoading = ref(true)
+    const hostName = ref('')
+    const isCreatingLobby = ref(false)
+    const isStartingGame = ref(false)
+
+    // Computed
+    const playerList = computed(() => {
+      return Object.values(players.value || {})
+        .filter(p => p.isOnline)
+        .sort((a, b) => {
+          // Host first, then alphabetically
+          if (a.isHost && !b.isHost) return -1
+          if (!a.isHost && b.isHost) return 1
+          return a.name.localeCompare(b.name)
+        })
     })
 
-    // Helper methods
-    const isGamePlayable = (game) => {
-      const completedQuestions = getCompletedQuestions(game)
-      return completedQuestions === 15 && 
-             game.rewards.every(r => r.name) && 
-             game.name
-    }
+    const onlinePlayerCount = computed(() => playerList.value.length)
 
-    const getCompletedQuestions = (game) => {
-      return game.questions.filter(q => 
-        q.question && q.answers.every(a => a.text) && q.correctAnswer !== null
-      ).length
-    }
-
-    const getEventQuestionsCount = (game) => {
-      return Object.values(game.eventQuestions || {}).reduce((total, events) => total + events.length, 0)
-    }
-
-    const getGameProgress = (game) => {
-      const completed = getCompletedQuestions(game)
-      const hasRewards = game.rewards.every(r => r.name)
-      const hasName = !!game.name
+    const canStartGame = computed(() => {
+      console.log('CanStartGame check:', {
+        isHost: isHost.value,
+        playerCount: onlinePlayerCount.value,
+        lobbyStatus: currentLobby.value?.status,
+        result: isHost.value && onlinePlayerCount.value >= 2 && currentLobby.value?.status === 'waiting'
+      })
       
-      let totalProgress = (completed / 15) * 80 // 80% für Fragen
-      if (hasRewards) totalProgress += 15 // 15% für Belohnungen
-      if (hasName) totalProgress += 5 // 5% für Name
+      return isHost.value && 
+             onlinePlayerCount.value >= 2 && 
+             currentLobby.value?.status === 'waiting'
+    })
+
+    const gameStatusText = computed(() => {
+      if (!currentLobby.value) return 'Lobby wird erstellt...'
       
-      return Math.min(totalProgress, 100)
-    }
+      switch (currentLobby.value.status) {
+        case 'waiting':
+          return onlinePlayerCount.value < 2 ? 'Warte auf mehr Spieler' : 'Bereit zum Start'
+        case 'starting':
+          return 'Spiel startet...'
+        case 'playing':
+          return 'Spiel läuft'
+        case 'finished':
+          return 'Spiel beendet'
+        default:
+          return 'Unbekannter Status'
+      }
+    })
 
-    const getStatusText = (game) => {
-      const progress = getGameProgress(game)
-      if (progress === 100) return 'Bereit zum Spielen'
-      if (progress >= 50) return 'In Bearbeitung'
-      return 'Entwurf'
-    }
-
-    const getStatusClass = (game) => {
-      const progress = getGameProgress(game)
-      if (progress === 100) return 'bg-green-600/30 text-green-300 border border-green-400/30'
-      if (progress >= 50) return 'bg-yellow-600/30 text-yellow-300 border border-yellow-400/30'
-      return 'bg-gray-600/30 text-gray-300 border border-gray-400/30'
-    }
-
-    const checkGameAccess = (game) => {
-      if (!game.isProtected) return true
-      
-      const sessionKey = `session_${game.id}`
+    // Methods
+    const loadGame = async () => {
+      console.log('Loading game with ID:', props.gameId)
+      isLoading.value = true
       try {
-        const sessionData = localStorage.getItem(sessionKey)
-        if (sessionData) {
-          const session = JSON.parse(sessionData)
-          const now = Date.now()
-          const sessionAge = now - session.timestamp
-          const maxAge = 24 * 60 * 60 * 1000 // 24 hours
-
-          if (sessionAge < maxAge && session.gameId == game.id) {
-            return true
-          } else {
-            localStorage.removeItem(sessionKey)
-          }
-        }
-      } catch {
-        localStorage.removeItem(sessionKey)
-      }
-      
-      return false
-    }
-
-    // Game actions
-    const createNewGame = () => {
-      router.push('/hacke-dicht/editor')
-    }
-
-    const editGame = async (game) => {
-      if (game.isProtected && !checkGameAccess(game)) {
-        selectedGame.value = game
-        pendingAction.value = 'edit'
-        showPasswordModal.value = true
-      } else {
-        router.push(`/hacke-dicht/editor/${game.id}`)
-      }
-    }
-
-    const playGame = async (game) => {
-      if (!isGamePlayable(game)) {
-        showError('Spiel ist nicht vollständig! Bitte bearbeite es zuerst.')
-        return
-      }
-      
-      if (game.isProtected && !checkGameAccess(game)) {
-        selectedGame.value = game
-        pendingAction.value = 'play'
-        showPasswordModal.value = true
-      } else {
-        router.push(`/hacke-dicht/play/${game.id}`)
-      }
-    }
-
-    const playMultiplayer = async (game) => {
-      if (!isGamePlayable(game)) {
-        showError('Spiel ist nicht vollständig! Bitte bearbeite es zuerst.')
-        return
-      }
-      
-      if (game.isProtected && !checkGameAccess(game)) {
-        selectedGame.value = game
-        pendingAction.value = 'multiplayer'
-        showPasswordModal.value = true
-      } else {
-        router.push(`/hacke-dicht/lobby/${game.id}`)
-      }
-    }
-
-    const deleteGame = (gameId) => {
-      if (confirm('Möchtest du dieses Quiz wirklich löschen?')) {
-        hackeDichtStore.deleteGame(gameId)
-        success('Quiz gelöscht!')
-      }
-    }
-
-    const migrateData = async () => {
-      if (confirm('Möchtest du deine lokalen Daten in die Cloud übertragen?')) {
-        try {
-          await hackeDichtStore.migrateFromLocalStorage()
-          success('Migration erfolgreich! Deine Daten sind jetzt in der Cloud.')
-        } catch (error) {
-          showError('Fehler bei der Migration: ' + error.message)
-        }
-      }
-    }
-
-    // Password handling
-    const verifyPassword = async () => {
-      if (!selectedGame.value || !passwordInput.value.trim()) return
-
-      isVerifying.value = true
-      passwordError.value = ''
-
-      try {
-        await new Promise(resolve => setTimeout(resolve, 500))
-
-        const isValid = hackeDichtStore.verifyGamePassword(selectedGame.value.id, passwordInput.value)
+        await hackeDichtStore.loadGames()
+        await playerStore.loadPlayers()
         
-        if (isValid) {
-          const sessionData = {
-            gameId: selectedGame.value.id,
-            timestamp: Date.now()
-          }
-          localStorage.setItem(`session_${selectedGame.value.id}`, JSON.stringify(sessionData))
-          
-          if (pendingAction.value === 'play') {
-            router.push(`/hacke-dicht/play/${selectedGame.value.id}`)
-          } else if (pendingAction.value === 'edit') {
-            router.push(`/hacke-dicht/editor/${selectedGame.value.id}`)
-          } else if (pendingAction.value === 'multiplayer') {
-            router.push(`/hacke-dicht/lobby/${selectedGame.value.id}`)
-          }
-          
-          closePasswordModal()
-        } else {
-          passwordError.value = 'Falsches Passwort!'
+        const gameData = hackeDichtStore.getGame(parseInt(props.gameId))
+        console.log('Game data loaded:', gameData)
+        
+        if (!gameData) {
+          showError('Quiz nicht gefunden')
+          router.push('/hacke-dicht/gallery')
+          return
         }
+        
+        game.value = gameData
+        
+        // Set default host name from players if available
+        if (playerStore.players.length > 0) {
+          hostName.value = playerStore.players[0].name
+        }
+        
       } catch (error) {
-        passwordError.value = 'Fehler beim Überprüfen des Passworts'
+        console.error('Error loading game:', error)
+        showError('Fehler beim Laden des Quiz')
       } finally {
-        isVerifying.value = false
+        isLoading.value = false
       }
     }
 
-    const closePasswordModal = () => {
-      showPasswordModal.value = false
-      passwordError.value = ''
-      passwordInput.value = ''
-      showPassword.value = false
-      selectedGame.value = null
-      pendingAction.value = null
+    const createLobby = async () => {
+      if (!hostName.value.trim() || !game.value) {
+        console.error('Cannot create lobby - missing data:', {
+          hostName: hostName.value,
+          game: !!game.value
+        })
+        return
+      }
+      
+      console.log('Creating lobby...', {
+        gameId: props.gameId,
+        hostName: hostName.value.trim()
+      })
+      
+      isCreatingLobby.value = true
+      try {
+        const lobbyCode = await createLobbyAction(props.gameId, hostName.value.trim())
+        console.log('Lobby created with code:', lobbyCode)
+        success(`Lobby ${lobbyCode} erstellt!`)
+      } catch (error) {
+        console.error('Failed to create lobby:', error)
+        showError('Fehler beim Erstellen der Lobby: ' + error.message)
+      } finally {
+        isCreatingLobby.value = false
+      }
+    }
+
+    const startGame = async () => {
+      console.log('Attempting to start game...', {
+        canStart: canStartGame.value,
+        isHost: isHost.value,
+        lobby: !!currentLobby.value,
+        lobbyCode: currentLobby.value?.code
+      })
+      
+      if (!canStartGame.value) {
+        console.error('Cannot start game - conditions not met')
+        showError('Spiel kann nicht gestartet werden')
+        return
+      }
+      
+      isStartingGame.value = true
+      try {
+        await startGameAction()
+        success('Spiel gestartet!')
+        console.log('Game started, redirecting to multiplayer...')
+        // Auto-redirect to multiplayer game view
+        router.push(`/hacke-dicht/play-multiplayer/${currentLobby.value.code}`)
+      } catch (error) {
+        console.error('Failed to start game:', error)
+        showError('Fehler beim Starten des Spiels: ' + error.message)
+      } finally {
+        isStartingGame.value = false
+      }
+    }
+
+    const copyLobbyCode = async () => {
+      if (!currentLobby.value) return
+      
+      try {
+        await navigator.clipboard.writeText(currentLobby.value.code)
+        success('Lobby-Code kopiert!')
+      } catch (error) {
+        console.error('Failed to copy:', error)
+        // Fallback für ältere Browser
+        const textArea = document.createElement('textarea')
+        textArea.value = currentLobby.value.code
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+        success('Lobby-Code kopiert!')
+      }
+    }
+
+    const copyJoinUrl = async () => {
+      if (!currentLobby.value) return
+      
+      try {
+        const joinUrl = generateJoinUrl(currentLobby.value.code)
+        await navigator.clipboard.writeText(joinUrl)
+        success('Join-Link kopiert!')
+      } catch (error) {
+        console.error('Failed to copy:', error)
+        showError('Fehler beim Kopieren')
+      }
+    }
+
+    // Watchers
+    watch(() => currentLobby.value?.status, (newStatus, oldStatus) => {
+      console.log('Lobby status changed:', oldStatus, '->', newStatus)
+      if (newStatus === 'playing') {
+        console.log('Status is playing, redirecting...')
+        router.push(`/hacke-dicht/play-multiplayer/${currentLobby.value.code}`)
+      }
+    })
+
+    watch(() => gameState.value?.phase, (newPhase, oldPhase) => {
+      console.log('Game phase changed:', oldPhase, '->', newPhase)
+      if (newPhase === 'voting') {
+        console.log('Phase is voting, redirecting...')
+        router.push(`/hacke-dicht/play-multiplayer/${currentLobby.value.code}`)
+      }
+    })
+
+    // Debug watchers
+    watch(currentLobby, (newLobby) => {
+      console.log('Current lobby changed:', newLobby)
+    })
+
+    watch(connectionStatus, (newStatus) => {
+      console.log('Connection status changed:', newStatus)
+    })
+
+    // Lifecycle
+    onMounted(async () => {
+      console.log('HackeDichtLobby mounted with gameId:', props.gameId)
+      await loadGame()
+    })
+
+    onUnmounted(async () => {
+      console.log('HackeDichtLobby unmounting...')
+      // Clean up lobby if we're the host
+      if (isHost.value && currentLobby.value) {
+        await leaveLobby()
+      }
+    })
+
+    // Handle browser back/refresh
+    const handleBeforeUnload = (event) => {
+      if (currentLobby.value && isHost.value) {
+        event.preventDefault()
+        event.returnValue = 'Das Verlassen der Seite beendet die Lobby für alle Spieler.'
+      }
     }
 
     onMounted(() => {
-      hackeDichtStore.loadGames()
+      window.addEventListener('beforeunload', handleBeforeUnload)
+    })
+
+    onUnmounted(() => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
     })
 
     return {
-      hackeDichtStore,
-      selectedGame,
-      showPasswordModal,
-      passwordInput,
-      passwordError,
-      isVerifying,
-      showPassword,
-      hasLocalData,
+      // Props
+      gameId: props.gameId,
       
-      // Helper methods
-      isGamePlayable,
-      getCompletedQuestions,
-      getEventQuestionsCount,
-      getGameProgress,
-      getStatusText,
-      getStatusClass,
+      // State
+      game, isLoading, hostName, isCreatingLobby, isStartingGame,
+      currentLobby, isHost, currentPlayer, players, gameState,
+      connectionStatus, error,
       
-      // Game actions
-      createNewGame,
-      editGame,
-      playGame,
-      playMultiplayer,
-      deleteGame,
-      migrateData,
+      // Computed
+      playerList, onlinePlayerCount, canStartGame, gameStatusText,
       
-      // Password handling
-      verifyPassword,
-      closePasswordModal
+      // Methods
+      createLobby, startGame, copyLobbyCode, copyJoinUrl,
+      
+      // Utils
+      window
     }
   }
 }

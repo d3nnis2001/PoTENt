@@ -26,6 +26,7 @@ export const lobbyStore = reactive({
   async createLobby(gameId, hostName) {
     try {
       this.connectionStatus = 'connecting'
+      console.log('Creating lobby for game:', gameId, 'host:', hostName)
       
       const lobbyCode = this.generateLobbyCode()
       const hostId = this.generatePlayerId()
@@ -67,17 +68,25 @@ export const lobbyStore = reactive({
       
       const lobbyRef = dbRef(realtimeDb, `lobbies/${lobbyCode}`)
       await set(lobbyRef, lobbyData)
+      console.log('Lobby data written to Firebase:', lobbyCode)
       
       // Disconnect-Handler für Host
       const hostPresenceRef = dbRef(realtimeDb, `lobbies/${lobbyCode}/players/${hostId}/isOnline`)
       onDisconnect(hostPresenceRef).set(false)
       
-      this.currentLobby = lobbyData
+      // WICHTIG: Lokalen State sofort setzen
+      this.currentLobby = { ...lobbyData, code: lobbyCode }
       this.isHost = true
       this.currentPlayer = lobbyData.players[hostId]
       this.players = lobbyData.players
       this.gameState = lobbyData.gameState
       this.connectionStatus = 'connected'
+      
+      console.log('Local state set:', {
+        lobbyCode,
+        isHost: this.isHost,
+        currentLobby: !!this.currentLobby
+      })
       
       // Lobby-Updates abonnieren
       this.subscribeToLobby(lobbyCode)
@@ -85,7 +94,6 @@ export const lobbyStore = reactive({
       // Heartbeat starten
       this.startHeartbeat()
       
-      console.log('Lobby erstellt:', lobbyCode)
       return lobbyCode
       
     } catch (error) {
@@ -99,6 +107,7 @@ export const lobbyStore = reactive({
   async joinLobby(lobbyCode, playerName, playerIcon = '🎮') {
     try {
       this.connectionStatus = 'connecting'
+      console.log('Joining lobby:', lobbyCode, 'as:', playerName)
       
       const lobbyRef = dbRef(realtimeDb, `lobbies/${lobbyCode}`)
       const lobbySnapshot = await get(lobbyRef)
@@ -108,6 +117,7 @@ export const lobbyStore = reactive({
       }
       
       const lobbyData = lobbySnapshot.val()
+      console.log('Found lobby:', lobbyData)
       
       // Prüfen ob Lobby voll ist
       const playerCount = Object.keys(lobbyData.players || {}).length
@@ -175,17 +185,27 @@ export const lobbyStore = reactive({
     
     const lobbyRef = dbRef(realtimeDb, `lobbies/${lobbyCode}`)
     
+    console.log('Subscribing to lobby updates:', lobbyCode)
+    
     this.unsubscribeListener = onValue(lobbyRef, (snapshot) => {
       if (snapshot.exists()) {
         const lobbyData = snapshot.val()
+        console.log('Lobby update received:', Object.keys(lobbyData.players || {}).length, 'players')
         
         // Nur aktualisieren wenn es wirkliche Änderungen gibt
-        if (JSON.stringify(this.currentLobby) !== JSON.stringify(lobbyData)) {
+        const oldLobbyString = JSON.stringify(this.currentLobby)
+        const newLobbyString = JSON.stringify(lobbyData)
+        
+        if (oldLobbyString !== newLobbyString) {
           this.currentLobby = lobbyData
           this.players = lobbyData.players || {}
           this.gameState = lobbyData.gameState || null
           
-          console.log('Lobby-Update erhalten:', Object.keys(this.players).length, 'Spieler')
+          console.log('Lobby state updated:', {
+            status: lobbyData.status,
+            playerCount: Object.keys(this.players).length,
+            phase: this.gameState?.phase
+          })
         }
       } else {
         console.log('Lobby wurde gelöscht')
@@ -199,15 +219,27 @@ export const lobbyStore = reactive({
   
   // Spiel starten (nur Host)
   async startGame() {
-    if (!this.isHost || !this.currentLobby) return
+    console.log('Starting game...', {
+      isHost: this.isHost,
+      currentLobby: !!this.currentLobby,
+      lobbyCode: this.currentLobby?.code
+    })
+    
+    if (!this.isHost || !this.currentLobby) {
+      console.error('Cannot start game - not host or no lobby')
+      return
+    }
     
     try {
       const lobbyCode = this.currentLobby.code
+      console.log('Setting game status to playing for lobby:', lobbyCode)
+      
+      // Update Lobby Status
       await set(dbRef(realtimeDb, `lobbies/${lobbyCode}/status`), 'playing')
       await set(dbRef(realtimeDb, `lobbies/${lobbyCode}/gameState/phase`), 'voting')
       await set(dbRef(realtimeDb, `lobbies/${lobbyCode}/gameState/questionStartTime`), serverTimestamp())
       
-      console.log('Spiel gestartet')
+      console.log('Game started successfully')
     } catch (error) {
       console.error('Fehler beim Starten:', error)
       throw error
@@ -359,32 +391,6 @@ export const lobbyStore = reactive({
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval)
       this.heartbeatInterval = null
-    }
-  },
-  
-  // Host migration (if host leaves)
-  async promoteNewHost() {
-    if (this.isHost || !this.currentLobby) return
-    
-    try {
-      // Find first online player that's not host
-      const onlinePlayers = Object.values(this.players).filter(p => p.isOnline && !p.isHost)
-      if (onlinePlayers.length === 0) return
-      
-      const newHostId = onlinePlayers[0].id
-      
-      // Update host status
-      await set(dbRef(realtimeDb, `lobbies/${this.currentLobby.code}/hostId`), newHostId)
-      await set(dbRef(realtimeDb, `lobbies/${this.currentLobby.code}/players/${newHostId}/isHost`), true)
-      
-      // If we become the new host
-      if (newHostId === this.currentPlayer?.id) {
-        this.isHost = true
-        console.log('Promoted to host')
-      }
-      
-    } catch (error) {
-      console.error('Host migration failed:', error)
     }
   },
   
