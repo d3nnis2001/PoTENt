@@ -1,232 +1,261 @@
 <template>
   <div class="min-h-screen p-4">
-    <!-- Connection Status -->
-    <ConnectionStatus 
-      :connection-status="connectionStatus"
-      @retry="handleRetry"
-    />
-    
-    <!-- Reconnecting Overlay -->
-    <LoadingScreen
-      v-if="showReconnecting"
-      type="connecting"
-      title="Verbindung wird wiederhergestellt"
-      message="Einen Moment bitte..."
-      :show-cancel="true"
-      @cancel="$router.push('/hacke-dicht/gallery')"
-    />
-    
-    <!-- Disconnected Warning -->
-    <div v-if="isDisconnected && !showReconnecting" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-40">
-      <div class="bg-red-600/20 border border-red-400/30 rounded-lg p-4 max-w-md">
-        <div class="flex items-center gap-3">
-          <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-          </svg>
-          <div class="flex-1">
-            <p class="text-red-300 font-medium text-sm">Verbindung unterbrochen</p>
-            <p class="text-red-200 text-xs">Deine Antworten werden möglicherweise nicht gespeichert</p>
-          </div>
-          <button 
-            @click="handleRetry"
-            class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs transition-colors"
-          >
-            Erneut versuchen
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Host View (Desktop) -->
-    <div v-if="isHost" class="max-w-6xl mx-auto">
+    <div class="max-w-4xl mx-auto">
       
-      <!-- Host Game Header -->
+      <!-- Game Header -->
       <div class="text-center mb-6">
-        <h1 class="text-3xl font-bold text-white mb-2">{{ game?.name || 'Quiz läuft' }}</h1>
-        <div class="flex items-center justify-center gap-4 text-orange-200">
-          <span>Frage {{ currentQuestionIndex + 1 }}/15</span>
-          <span>•</span>
-          <span>{{ onlinePlayerCount }} Spieler</span>
-          <span>•</span>
-          <span v-if="timeRemaining > 0">{{ timeRemaining }}s</span>
-          <span v-else class="text-red-300">Zeit abgelaufen</span>
-        </div>
+        <button
+          @click="$router.push('/hacke-dicht/gallery')"
+          class="text-purple-200 hover:text-white mb-4 inline-flex items-center gap-2"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+          Zurück zur Galerie
+        </button>
+        <h1 class="text-2xl font-bold text-white mb-2">{{ game?.name || 'Quiz läuft' }}</h1>
+        <p class="text-orange-200">Frage {{ currentQuestionIndex + 1 }}/15</p>
       </div>
 
-      <!-- Jokers Panel (Host only) -->
-      <div class="fixed top-4 left-4 z-40 flex flex-col gap-2">
+      <!-- Loading State -->
+      <div v-if="isLoading" class="text-center py-8">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        <p class="text-white mt-2">Lade Quiz...</p>
+      </div>
+
+      <!-- Game Not Found -->
+      <div v-else-if="!game" class="text-center py-12">
+        <h2 class="text-xl font-semibold text-white mb-2">Quiz nicht gefunden</h2>
+        <p class="text-orange-200">Das angeforderte Quiz existiert nicht.</p>
+      </div>
+
+      <!-- Progress Screen -->
+      <div v-else-if="showProgressScreen" class="text-center py-12">
+        <h2 class="text-2xl font-bold text-white mb-4">Bereit für Frage {{ currentQuestionIndex + 1 }}?</h2>
         <button
-          v-for="(joker, type) in availableJokers"
-          :key="type"
-          @click="activateJoker(type)"
-          :disabled="joker.used || gamePhase !== 'voting' || isDisconnected"
-          :class="[
-            'p-2 rounded-lg border transition-all flex items-center justify-center w-12 h-12 text-lg',
-            joker.used ? 'bg-gray-600/30 border-gray-400/30 opacity-50' : 'bg-blue-600/30 border-blue-400/50 hover:bg-blue-600/50'
-          ]"
-          :title="joker.name"
+          @click="continueFromProgress"
+          class="bg-gradient-to-r from-orange-600 to-red-600 text-white py-4 px-8 rounded-lg font-bold text-xl hover:from-orange-700 hover:to-red-700 transition-all"
         >
-          {{ joker.icon }}
+          {{ currentQuestionIndex === 0 ? 'Spiel starten' : 'Weiter zur nächsten Frage' }}
         </button>
       </div>
 
-      <!-- Main Question Display -->
-      <div v-if="currentQuestion" class="bg-gradient-to-br from-orange-600 to-red-600 rounded-2xl p-8 shadow-2xl border border-white/20 mb-8">
-        <p class="text-white text-2xl leading-relaxed text-center mb-8">
-          {{ currentQuestion.question }}
-        </p>
-
-        <!-- Answer Options for Host -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <div
-            v-for="(answer, index) in currentQuestion.answers"
-            :key="index"
-            :class="[
-              'p-4 rounded-lg font-medium text-left flex items-center gap-3 min-h-[60px] transition-all duration-500',
-              getAnswerClasses(index)
-            ]"
+      <!-- Results View -->
+      <div v-else-if="showResults" class="text-center py-12">
+        <div class="text-8xl mb-6 animate-bounce">🎉</div>
+        <h2 class="text-4xl font-bold text-white mb-4">Quiz beendet!</h2>
+        <p class="text-orange-200 text-xl mb-8">Alle 15 Fragen geschafft!</p>
+        
+        <div class="flex gap-4 justify-center">
+          <button
+            v-if="isHost"
+            @click="restartGame"
+            class="bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 px-6 rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all"
           >
-            <span class="flex-shrink-0 w-8 h-8 rounded-full border-2 border-current flex items-center justify-center font-bold">
-              {{ String.fromCharCode(65 + index) }}
-            </span>
-            <span class="flex-1">{{ answer.text }}</span>
+            Neues Spiel starten
+          </button>
+          <button
+            @click="$router.push('/hacke-dicht/gallery')"
+            class="bg-white/20 text-white py-3 px-6 rounded-lg font-medium hover:bg-white/30 transition-all"
+          >
+            Zur Galerie
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Game View -->
+      <div v-else-if="currentQuestion">
+        
+        <!-- Jokers Panel (Host only) -->
+        <div v-if="isHost" class="fixed top-4 left-4 z-40 flex flex-col gap-2">
+          <button
+            v-for="(joker, type) in availableJokers"
+            :key="type"
+            @click="activateJoker(type)"
+            :disabled="joker.used || gamePhase !== 'reading' || isDisconnected"
+            :class="[
+              'p-3 rounded-lg border transition-all flex items-center justify-center w-16 h-16 text-2xl',
+              joker.used ? 'bg-gray-600/30 border-gray-400/30 opacity-50' : 'bg-blue-600/30 border-blue-400/50 hover:bg-blue-600/50'
+            ]"
+            :title="joker.name"
+          >
+            {{ joker.icon }}
+          </button>
+        </div>
+
+        <!-- Question Header -->
+        <div class="text-center mb-6">
+          <h2 class="text-2xl font-bold text-white mb-2">Frage {{ currentQuestionIndex + 1 }}</h2>
+          
+          <!-- Host View -->
+          <div v-if="isHost" class="flex items-center justify-center gap-2">
+            <span class="text-orange-200">Moderierst das Quiz</span>
+            <span class="text-orange-300">•</span>
+            <span class="text-orange-200">{{ realPlayerCount }} Spieler</span>
+            <span class="text-orange-300">•</span>
+            <span v-if="timeRemaining > 0" class="text-orange-200">{{ timeRemaining }}s</span>
+            <span v-else class="text-red-300">Zeit abgelaufen</span>
+            <span class="text-orange-300">•</span>
+            <span class="text-green-300">{{ votedPlayerCount }}/{{ realPlayerCount }} abgestimmt</span>
+          </div>
+          
+          <!-- Player View -->
+          <div v-else>
+            <div class="flex items-center justify-center gap-2 text-orange-200 text-sm mb-2">
+              <span v-if="timeRemaining > 0">{{ timeRemaining }}s verbleibend</span>
+              <span v-else class="text-red-300">Zeit abgelaufen</span>
+            </div>
             
-            <!-- Vote Count & Progress Bar -->
-            <div v-if="showVotes" class="text-right min-w-[60px]">
-              <div class="text-lg font-bold">{{ getVoteCount(index) }}</div>
-              <div class="text-sm opacity-75">{{ getVotePercentage(index) }}%</div>
-              <div class="w-12 bg-black/20 rounded-full h-1 mt-1">
-                <div 
-                  class="bg-white h-1 rounded-full transition-all duration-1000"
-                  :style="{ width: `${getVotePercentage(index)}%` }"
-                ></div>
+            <div class="flex items-center justify-center gap-2">
+              <span class="text-orange-200">Bei falscher Antwort trinken:</span>
+              <div class="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full">
+                <img 
+                  v-if="currentReward?.image" 
+                  :src="currentReward.image" 
+                  :alt="currentReward.name" 
+                  class="w-6 h-6 object-cover rounded-full"
+                >
+                <span class="text-white font-bold">{{ currentReward?.name }}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Action Button -->
-        <div class="text-center">
-          <button
-            v-if="gamePhase === 'voting'"
-            @click="showAnswer"
-            :disabled="(!allPlayersVoted && timeRemaining > 0) || isDisconnected"
-            class="bg-white text-orange-600 py-4 px-8 rounded-lg font-bold text-xl hover:bg-gray-100 transition-colors disabled:opacity-50"
-          >
-            {{ allPlayersVoted ? 'Antwort zeigen' : `Warten (${votedPlayerCount}/${onlinePlayerCount})` }}
-          </button>
-          
-          <button
-            v-else-if="gamePhase === 'results'"
-            @click="nextQuestion"
-            :disabled="isDisconnected"
-            class="bg-white text-orange-600 py-4 px-8 rounded-lg font-bold text-xl hover:bg-gray-100 transition-colors disabled:opacity-50"
-          >
-            {{ isLastQuestion ? 'Quiz beenden' : 'Nächste Frage' }}
-          </button>
+        <!-- Question Card -->
+        <div class="bg-gradient-to-br from-orange-600 to-red-600 rounded-2xl p-8 shadow-2xl border border-white/20">
+          <p class="text-white text-2xl leading-relaxed text-center mb-8">
+            {{ currentQuestion.question }}
+          </p>
+
+          <!-- Answer Options -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <!-- Host View -->
+            <div
+              v-if="isHost"
+              v-for="(answer, index) in currentQuestion.answers"
+              :key="`host-${index}`"
+              :class="[
+                'p-4 rounded-lg font-medium text-left flex items-center gap-3 min-h-[60px] transition-all duration-500',
+                getHostAnswerClasses(index)
+              ]"
+            >
+              <span class="flex-shrink-0 w-8 h-8 rounded-full border-2 border-current flex items-center justify-center font-bold">
+                {{ String.fromCharCode(65 + index) }}
+              </span>
+              <span class="flex-1">{{ answer.text }}</span>
+              
+              <!-- Vote Count & Progress Bar -->
+              <div v-if="showVotes" class="text-right min-w-[60px]">
+                <div class="text-lg font-bold">{{ getVoteCount(index) }}</div>
+                <div class="text-sm opacity-75">{{ getVotePercentage(index) }}%</div>
+                <div class="w-12 bg-black/20 rounded-full h-1 mt-1">
+                  <div 
+                    class="bg-white h-1 rounded-full transition-all duration-1000"
+                    :style="{ width: `${getVotePercentage(index)}%` }"
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Player View -->
+            <button
+              v-else
+              v-for="(answer, index) in currentQuestion.answers"
+              :key="`player-${index}`"
+              @click="selectAnswer(index)"
+              :disabled="hasVotedFinal || isDisconnected || timeRemaining <= 0"
+              :class="[
+                'p-4 rounded-lg font-medium text-left transition-all flex items-center gap-3 min-h-[60px]',
+                getPlayerAnswerClasses(index)
+              ]"
+            >
+              <span class="flex-shrink-0 w-8 h-8 rounded-full border-2 border-current flex items-center justify-center font-bold">
+                {{ String.fromCharCode(65 + index) }}
+              </span>
+              <span class="flex-1">{{ answer.text }}</span>
+              <div v-if="selectedAnswer === index" class="text-blue-300 text-xl">
+                ✓
+              </div>
+            </button>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="text-center">
+            <!-- Host Actions -->
+            <button
+              v-if="isHost && gamePhase === 'reading'"
+              @click="showAnswer"
+              :disabled="(!allPlayersVoted && timeRemaining > 0) || isDisconnected"
+              class="bg-white text-orange-600 py-4 px-8 rounded-lg font-bold text-xl hover:bg-gray-100 transition-colors disabled:opacity-50"
+            >
+              {{ allPlayersVoted ? 'Antwort zeigen' : `Warten (${votedPlayerCount}/${realPlayerCount})` }}
+            </button>
+            
+            <button
+              v-else-if="isHost && gamePhase === 'showing_answer'"
+              @click="nextQuestion"
+              :disabled="isDisconnected"
+              class="bg-white text-orange-600 py-4 px-8 rounded-lg font-bold text-xl hover:bg-gray-100 transition-colors disabled:opacity-50"
+            >
+              {{ isLastQuestion ? 'Quiz beenden' : 'Nächste Frage' }}
+            </button>
+
+            <!-- Player Actions -->
+            <div v-else-if="!isHost">
+              <!-- Submit Button for Players -->
+              <button
+                v-if="selectedAnswer !== null && !hasVotedFinal && gamePhase === 'reading'"
+                @click="submitFinalVote"
+                :disabled="submittingVote || isDisconnected"
+                class="bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 px-8 rounded-lg font-bold text-xl hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 transition-all"
+              >
+                {{ submittingVote ? 'Wird gesendet...' : 'Antwort bestätigen' }}
+              </button>
+              
+              <!-- Waiting State -->
+              <div v-else-if="hasVotedFinal" class="text-center py-4">
+                <div class="text-6xl mb-4 animate-bounce">✓</div>
+                <h3 class="text-xl font-bold text-white mb-2">Antwort bestätigt!</h3>
+                <p class="text-orange-200 mb-4">Warte auf andere Spieler...</p>
+                
+                <!-- Vote Progress -->
+                <div class="bg-white/10 rounded-full h-2 mb-2 max-w-md mx-auto">
+                  <div 
+                    class="bg-green-500 h-2 rounded-full transition-all duration-500"
+                    :style="{ width: `${(votedPlayerCount / realPlayerCount) * 100}%` }"
+                  ></div>
+                </div>
+                <div class="text-sm text-white/70">
+                  {{ votedPlayerCount }}/{{ realPlayerCount }} Spieler haben geantwortet
+                </div>
+                
+                <div class="mt-4 text-sm text-white/70">
+                  Du hast {{ String.fromCharCode(65 + selectedAnswer) }} gewählt
+                </div>
+              </div>
+              
+              <!-- Instructions for Players -->
+              <div v-else-if="gamePhase === 'reading'" class="text-center text-orange-200">
+                {{ selectedAnswer !== null ? 'Du kannst deine Auswahl bis zur Bestätigung ändern' : 'Wähle deine Antwort' }}
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Answer Feedback -->
-        <div v-if="gamePhase === 'results'" class="text-center mt-6">
-          <div class="text-green-400 text-2xl font-bold mb-2">
-            ✅ Richtige Antwort: {{ String.fromCharCode(65 + currentQuestion.correctAnswer) }}
-          </div>
-          <div class="text-orange-200 text-lg">
-            Wer falsch lag trinkt: {{ currentReward?.name }}! 🍻
-          </div>
-        </div>
-      </div>
-
-      <!-- Player Status Overview -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div
-          v-for="player in playerList"
-          :key="player.id"
-          :class="[
-            'bg-white/10 rounded-lg p-3 border transition-all',
-            player.isOnline ? 'border-green-400/30' : 'border-gray-400/30',
-            hasPlayerVoted(player.id) ? 'bg-green-600/20' : 'bg-white/5'
-          ]"
-        >
-          <div class="flex items-center gap-2">
-            <div class="text-lg">{{ player.icon }}</div>
-            <div class="flex-1 min-w-0">
-              <div class="text-white font-medium truncate">{{ player.name }}</div>
-              <div class="text-xs text-orange-200">
-                {{ hasPlayerVoted(player.id) ? '✓ Abgestimmt' : 'Wartet...' }}
-              </div>
+        <div v-if="gamePhase === 'showing_answer'" class="text-center mt-6">
+          <!-- Host View -->
+          <div v-if="isHost">
+            <div class="text-green-400 text-2xl font-bold mb-2">
+              ✅ Die richtige Antwort ist {{ String.fromCharCode(65 + currentQuestion.correctAnswer) }}!
+            </div>
+            <div class="text-orange-200 text-lg">
+              {{ getWrongPlayerCount() }} Spieler trinken: {{ currentReward?.name }}! 🍻
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Player View (Mobile) -->
-    <div v-else class="max-w-md mx-auto">
-      
-      <!-- Player Header with Connection Status -->
-      <div class="text-center mb-6">
-        <h1 class="text-2xl font-bold text-white mb-1">Frage {{ currentQuestionIndex + 1 }}/15</h1>
-        <div class="flex items-center justify-center gap-2 text-orange-200 text-sm">
-          <span v-if="timeRemaining > 0">{{ timeRemaining }}s verbleibend</span>
-          <span v-else class="text-red-300">Zeit abgelaufen</span>
-          <span v-if="isDisconnected" class="text-red-300">• Offline</span>
-        </div>
-      </div>
-
-      <!-- Question for Players -->
-      <div v-if="currentQuestion" class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 mb-6">
-        <p class="text-white text-lg leading-relaxed text-center mb-6">
-          {{ currentQuestion.question }}
-        </p>
-
-        <!-- Answer Buttons for Players -->
-        <div v-if="gamePhase === 'voting' && !hasVoted" class="space-y-3">
-          <button
-            v-for="(answer, index) in currentQuestion.answers"
-            :key="index"
-            @click="submitVote(index)"
-            :disabled="submittingVote || isDisconnected"
-            :class="[
-              'w-full p-4 border-2 rounded-lg text-white font-medium text-left hover:bg-white/30 transition-all disabled:opacity-50 flex items-center gap-3',
-              submittingVote || isDisconnected 
-                ? 'bg-white/10 border-white/20 cursor-not-allowed' 
-                : 'bg-white/20 border-white/30 hover:border-orange-400/50 active:bg-white/40'
-            ]"
-          >
-            <span class="w-8 h-8 rounded-full border-2 border-current flex items-center justify-center font-bold text-sm flex-shrink-0">
-              {{ String.fromCharCode(65 + index) }}
-            </span>
-            <span class="flex-1">{{ answer.text }}</span>
-            <div v-if="submittingVote" class="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></div>
-          </button>
-        </div>
-
-        <!-- Waiting State with Animation -->
-        <div v-else-if="hasVoted" class="text-center py-8">
-          <div class="text-6xl mb-4 animate-bounce">✓</div>
-          <h3 class="text-xl font-bold text-white mb-2">Antwort abgegeben!</h3>
-          <p class="text-orange-200 mb-4">Warte auf andere Spieler...</p>
           
-          <!-- Vote Progress -->
-          <div class="bg-white/10 rounded-full h-2 mb-2">
-            <div 
-              class="bg-green-500 h-2 rounded-full transition-all duration-500"
-              :style="{ width: `${(votedPlayerCount / onlinePlayerCount) * 100}%` }"
-            ></div>
-          </div>
-          <div class="text-sm text-white/70">
-            {{ votedPlayerCount }}/{{ onlinePlayerCount }} Spieler haben geantwortet
-          </div>
-          
-          <div class="mt-4 text-sm text-white/70">
-            Du hast {{ String.fromCharCode(65 + selectedAnswer) }} gewählt
-          </div>
-        </div>
-
-        <!-- Results for Players -->
-        <div v-else-if="gamePhase === 'results'" class="space-y-4">
-          <div class="text-center mb-6">
+          <!-- Player View -->
+          <div v-else>
             <div class="text-green-400 text-xl font-bold mb-2">
               Richtige Antwort: {{ String.fromCharCode(65 + currentQuestion.correctAnswer) }}
             </div>
@@ -240,152 +269,54 @@
               Du trinkst: {{ currentReward?.name }}! 🍻
             </div>
           </div>
+        </div>
 
-          <!-- Simple Vote Results with Progress Bars -->
-          <div class="space-y-3">
-            <div
-              v-for="(answer, index) in currentQuestion.answers"
-              :key="index"
-              :class="[
-                'p-3 rounded-lg border transition-all',
-                index === currentQuestion.correctAnswer 
-                  ? 'bg-green-600/20 border-green-400/50' 
-                  : 'bg-white/5 border-white/20'
-              ]"
-            >
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-white font-medium">{{ String.fromCharCode(65 + index) }}: {{ answer.text }}</span>
-                <span class="text-orange-200 font-bold">{{ getVotePercentage(index) }}%</span>
-              </div>
-              <div class="bg-white/10 rounded-full h-1">
-                <div 
-                  :class="[
-                    'h-1 rounded-full transition-all duration-1000',
-                    index === currentQuestion.correctAnswer ? 'bg-green-400' : 'bg-white/30'
-                  ]"
-                  :style="{ width: `${getVotePercentage(index)}%` }"
-                ></div>
+        <!-- Player Status (Host only) -->
+        <div v-if="isHost && realPlayerList.length > 0" class="mt-8">
+          <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
+            <h3 class="text-xl font-bold text-white mb-4">Spieler Status</h3>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div
+                v-for="player in realPlayerList"
+                :key="player.id"
+                :class="[
+                  'bg-white/5 rounded-lg p-4 border transition-all',
+                  player.isOnline ? 'border-green-400/30' : 'border-gray-400/30',
+                  hasPlayerVoted(player.id) ? 'bg-green-600/20' : 'bg-white/5'
+                ]"
+              >
+                <div class="flex items-center gap-3">
+                  <div class="text-2xl">{{ player.icon }}</div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-white font-medium truncate">{{ player.name }}</div>
+                    <div class="text-xs text-orange-200">
+                      {{ hasPlayerVoted(player.id) ? '✓ Abgestimmt' : 'Wartet...' }}
+                    </div>
+                    <div v-if="showPlayerAnswers && hasPlayerVoted(player.id)" class="text-xs text-green-300 mt-1">
+                      Antwort: {{ getPlayerAnswer(player.id) }}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Enhanced Joker Status for Players -->
-      <div class="bg-white/10 rounded-lg p-4 border border-white/20 mb-4">
-        <h3 class="text-white font-semibold mb-3 text-center">Joker Status</h3>
-        <div class="grid grid-cols-3 gap-2">
-          <div
-            v-for="(joker, type) in availableJokers"
-            :key="type"
-            :class="[
-              'flex flex-col items-center gap-1 p-3 rounded-lg border transition-all',
-              joker.used 
-                ? 'bg-gray-600/30 border-gray-400/30 opacity-50' 
-                : 'bg-blue-600/30 border-blue-400/50'
-            ]"
-          >
-            <div class="text-2xl">{{ joker.icon }}</div>
-            <div class="text-xs text-white text-center">{{ joker.name }}</div>
-            <div :class="[
-              'text-xs px-2 py-1 rounded-full',
-              joker.used 
-                ? 'bg-red-600/30 text-red-300' 
-                : 'bg-green-600/30 text-green-300'
-            ]">
-              {{ joker.used ? 'Benutzt' : 'Verfügbar' }}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Player Status Card -->
-      <div class="bg-white/10 rounded-lg p-4 border border-white/20">
-        <div class="flex items-center justify-center gap-3">
-          <div class="text-3xl">{{ currentPlayer?.icon }}</div>
+      <!-- Joker Message Modal -->
+      <div v-if="jokerMessage" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50" @click="clearJokerMessage">
+        <div class="bg-gradient-to-br from-purple-600/40 to-blue-600/40 backdrop-blur-lg rounded-xl p-8 border-2 border-purple-400/50 max-w-2xl shadow-2xl animate-pulse" @click.stop>
           <div class="text-center">
-            <div class="text-white font-medium">{{ currentPlayer?.name }}</div>
-            <div :class="[
-              'text-sm',
-              hasVoted ? 'text-green-300' : 'text-orange-200'
-            ]">
-              {{ hasVoted ? '✓ Abgestimmt' : 'Wähle deine Antwort' }}
-            </div>
-            <div v-if="isDisconnected" class="text-red-300 text-xs mt-1">
-              ⚠️ Verbindung unterbrochen
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Game Finished -->
-    <div v-if="gamePhase === 'finished'" class="max-w-4xl mx-auto text-center">
-      <div class="bg-white/10 backdrop-blur-lg rounded-xl p-8 border border-white/20">
-        
-        <!-- Success Animation -->
-        <div class="text-8xl mb-6 animate-bounce">🎉</div>
-        <h2 class="text-4xl font-bold text-white mb-4">Quiz beendet!</h2>
-        <p class="text-orange-200 text-xl mb-8">Alle 15 Fragen geschafft! Zeit für den finalen Drink! 🍻</p>
-        
-        <!-- Quick Stats -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div class="bg-white/5 rounded-lg p-4">
-            <div class="text-3xl font-bold text-green-400">{{ onlinePlayerCount }}</div>
-            <div class="text-orange-200 text-sm">Spieler</div>
-          </div>
-          <div class="bg-white/5 rounded-lg p-4">
-            <div class="text-3xl font-bold text-blue-400">15</div>
-            <div class="text-orange-200 text-sm">Fragen</div>
-          </div>
-          <div class="bg-white/5 rounded-lg p-4">
-            <div class="text-3xl font-bold text-purple-400">{{ Math.round(gameTime / 60) }}</div>
-            <div class="text-orange-200 text-sm">Minuten</div>
-          </div>
-        </div>
-        
-        <!-- Player List with Icons -->
-        <div class="mb-8">
-          <h3 class="text-xl font-bold text-white mb-4">Mitspieler</h3>
-          <div class="flex flex-wrap justify-center gap-4">
-            <div 
-              v-for="player in playerList"
-              :key="player.id"
-              class="bg-white/10 rounded-lg p-3 flex items-center gap-2"
+            <h3 class="text-2xl font-bold text-white mb-4">{{ jokerMessage.title }}</h3>
+            <p class="text-white text-lg leading-relaxed">{{ jokerMessage.text }}</p>
+            <button
+              @click="clearJokerMessage"
+              class="mt-6 bg-purple-600 hover:bg-purple-700 text-white py-3 px-6 rounded-lg font-medium transition-all"
             >
-              <div class="text-2xl">{{ player.icon }}</div>
-              <div class="text-white font-medium">{{ player.name }}</div>
-              <div v-if="player.isHost" class="text-yellow-400 text-xs">👑</div>
-            </div>
+              Weiter
+            </button>
           </div>
-        </div>
-        
-        <!-- Action Buttons -->
-        <div class="flex gap-4 justify-center">
-          <button
-            v-if="isHost"
-            @click="startNewGame"
-            :disabled="isDisconnected"
-            class="bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 px-6 rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50"
-          >
-            Neues Spiel starten
-          </button>
-          <button
-            @click="$router.push('/hacke-dicht/gallery')"
-            class="bg-white/20 text-white py-3 px-6 rounded-lg font-medium hover:bg-white/30 transition-all"
-          >
-            Zur Galerie
-          </button>
-        </div>
-        
-        <!-- Fun Closing Message -->
-        <div class="mt-8 p-4 bg-gradient-to-r from-orange-600/20 to-red-600/20 rounded-lg border border-orange-400/30">
-          <p class="text-orange-200 text-lg font-medium">
-            Hoffentlich seid ihr jetzt richtig hacke! 🍺
-          </p>
-          <p class="text-orange-300 text-sm mt-1">
-            Spielt verantwortungsvoll und passt aufeinander auf! ❤️
-          </p>
         </div>
       </div>
     </div>
@@ -400,17 +331,9 @@ import { useConnection } from '../composables/useConnection'
 import { hackeDichtStore } from '../store/hackeDichtStore'
 import { lobbyStore } from '../store/lobbyStore'
 import { globalToast } from '../composables/useToast'
-import { ref as dbRef, set, serverTimestamp } from 'firebase/database'
-import { realtimeDb } from '../firebase/config'
-import ConnectionStatus from '../components/ConnectionStatus.vue'
-import LoadingScreen from '../components/LoadingScreen.vue'
 
 export default {
   name: 'HackeDichtPlayMultiplayer',
-  components: {
-    ConnectionStatus,
-    LoadingScreen
-  },
   props: {
     lobbyCode: {
       type: String,
@@ -427,21 +350,28 @@ export default {
     const { isOnline, manualRetry } = useConnection()
     const { success, error: showError } = globalToast
 
+    // State
     const game = ref(null)
-    const submittingVote = ref(false)
+    const isLoading = ref(true)
+    const currentQuestionIndex = ref(0)
+    const gamePhase = ref('progress')
+    const showResults = ref(false)
+    const showProgressScreen = ref(true)
     const timeRemaining = ref(30)
-    const selectedAnswer = ref(null)
-    const showReconnecting = ref(false)
-    const gameTime = ref(0)
     let timer = null
-    let gameStartTime = Date.now()
 
-    // Computed Properties
-    const currentQuestionIndex = computed(() => gameState.value?.currentQuestionIndex || 0)
-    const gamePhase = computed(() => gameState.value?.phase || 'voting')
-    
+    // Multiplayer specific state
+    const selectedAnswer = ref(null)
+    const hasVotedFinal = ref(false)
+    const submittingVote = ref(false)
+
+    // Joker system
+    const jokerMessage = ref(null)
+    const hiddenAnswers = ref([])
+
+    // Computed properties
     const currentQuestion = computed(() => {
-      if (!game.value) return null
+      if (!game.value || showResults.value) return null
       return game.value.questions[currentQuestionIndex.value]
     })
 
@@ -453,77 +383,68 @@ export default {
       return game.value.rewards[2]
     })
 
-    const isLastQuestion = computed(() => currentQuestionIndex.value >= 14)
+    const isLastQuestion = computed(() => {
+      return currentQuestionIndex.value >= 14
+    })
 
-    const playerList = computed(() => {
+    // Multiplayer computed
+    const realPlayerList = computed(() => {
       return Object.values(players.value || {})
-        .filter(p => p.isOnline)
+        .filter(p => p.isOnline && !p.isModerator)
         .sort((a, b) => a.name.localeCompare(b.name))
     })
 
-    const onlinePlayerCount = computed(() => playerList.value.length)
+    const realPlayerCount = computed(() => realPlayerList.value.length)
 
-    // Vote Stats
     const voteStats = computed(() => lobbyStore.getVoteStats(currentQuestionIndex.value))
     const votedPlayerCount = computed(() => voteStats.value.totalVotes)
     const allPlayersVoted = computed(() => lobbyStore.allPlayersVoted(currentQuestionIndex.value))
-    const hasVoted = computed(() => lobbyStore.hasPlayerVoted(currentQuestionIndex.value, currentPlayer.value?.id))
-    const showVotes = computed(() => gamePhase.value === 'results' || (isHost.value && allPlayersVoted.value))
+    const showVotes = computed(() => gamePhase.value === 'showing_answer' || (isHost.value && allPlayersVoted.value))
+    const showPlayerAnswers = computed(() => gamePhase.value === 'showing_answer')
 
-    // Joker Status
+    // Connection
+    const isDisconnected = computed(() => connectionStatus.value === 'disconnected')
+
+    // Available Jokers
     const availableJokers = computed(() => ({
       fiftyFifty: {
         name: '50/50',
         icon: '🎯',
         used: gameState.value?.jokers?.fiftyFifty?.used || false
       },
-      publikum: {
-        name: 'Publikum',
+      randomPerson: {
+        name: 'Random Person',
         icon: '👥',
-        used: gameState.value?.jokers?.publikum?.used || false
+        used: gameState.value?.jokers?.randomPerson?.used || false
       },
-      telefon: {
-        name: 'Telefon',
+      reveal: {
+        name: 'Reveal',
         icon: '📞',
-        used: gameState.value?.jokers?.telefon?.used || false
+        used: gameState.value?.jokers?.reveal?.used || false
       }
     }))
 
-    // Connection handling
-    const isDisconnected = computed(() => connectionStatus.value === 'disconnected')
-    const isConnecting = computed(() => connectionStatus.value === 'connecting')
+    // Sync with lobby gameState
+    watch(() => gameState.value, (newState) => {
+      if (!newState) return
+      
+      currentQuestionIndex.value = newState.currentQuestionIndex || 0
+      
+      // Map Firebase phases to local phases
+      if (newState.phase === 'voting') {
+        gamePhase.value = 'reading'
+        showProgressScreen.value = false
+      } else if (newState.phase === 'results') {
+        gamePhase.value = 'showing_answer'
+      } else if (newState.phase === 'finished') {
+        showResults.value = true
+      }
+    }, { deep: true })
 
     // Methods
-    const getVoteCount = (answerIndex) => voteStats.value.answerCounts[answerIndex] || 0
-    const getVotePercentage = (answerIndex) => voteStats.value.percentages[answerIndex] || 0
-
-    const getAnswerClasses = (index) => {
-      if (gamePhase.value === 'voting') {
-        return 'bg-white/20 text-white border-2 border-white/30'
-      } else if (gamePhase.value === 'results') {
-        if (index === currentQuestion.value.correctAnswer) {
-          return 'bg-green-600 text-white border-2 border-green-400 animate-pulse'
-        } else {
-          return 'bg-white/10 text-white/50 border-2 border-white/20'
-        }
-      }
-      return 'bg-white/20 text-white border-2 border-white/30'
-    }
-
-    const submitPlayerVote = async (answerIndex) => {
-      if (submittingVote.value || hasVoted.value || isDisconnected.value) return
-      
-      submittingVote.value = true
-      try {
-        selectedAnswer.value = answerIndex
-        await submitVote(currentQuestionIndex.value, answerIndex)
-      } catch (error) {
-        console.error('Vote error:', error)
-        selectedAnswer.value = null
-        showError('Fehler beim Abstimmen')
-      } finally {
-        submittingVote.value = false
-      }
+    const continueFromProgress = () => {
+      showProgressScreen.value = false
+      gamePhase.value = 'reading'
     }
 
     const showAnswer = async () => {
@@ -537,6 +458,11 @@ export default {
 
     const nextQuestion = async () => {
       if (!isHost.value || isDisconnected.value) return
+      
+      selectedAnswer.value = null
+      hasVotedFinal.value = false
+      hiddenAnswers.value = []
+      
       try {
         await lobbyStore.nextQuestion()
       } catch (error) {
@@ -544,60 +470,134 @@ export default {
       }
     }
 
+    const restartGame = async () => {
+      if (!isHost.value) return
+      // Implement restart logic
+    }
+
+    // Player voting
+    const selectAnswer = (answerIndex) => {
+      if (isHost.value || hasVotedFinal.value || isDisconnected.value || timeRemaining.value <= 0) return
+      selectedAnswer.value = answerIndex
+    }
+
+    const submitFinalVote = async () => {
+      if (isHost.value || submittingVote.value || hasVotedFinal.value || selectedAnswer.value === null || isDisconnected.value) return
+      
+      submittingVote.value = true
+      try {
+        await submitVote(currentQuestionIndex.value, selectedAnswer.value)
+        hasVotedFinal.value = true
+        success('Antwort bestätigt!')
+      } catch (error) {
+        console.error('Vote error:', error)
+        showError('Fehler beim Abstimmen')
+      } finally {
+        submittingVote.value = false
+      }
+    }
+
+    // Joker handling
     const activateJoker = async (jokerType) => {
-      if (!isHost.value || isDisconnected.value) return
+      if (!isHost.value || gamePhase.value !== 'reading') return
+      
       try {
         await activateJokerAction(jokerType)
-        success(`${availableJokers.value[jokerType].name} aktiviert!`)
+        
+        if (jokerType === 'fiftyFifty') {
+          const wrongAnswers = []
+          for (let i = 0; i < 4; i++) {
+            if (i !== currentQuestion.value.correctAnswer) {
+              wrongAnswers.push(i)
+            }
+          }
+          const shuffled = wrongAnswers.sort(() => 0.5 - Math.random())
+          hiddenAnswers.value = shuffled.slice(0, 2)
+        }
+        
+        jokerMessage.value = {
+          title: `${availableJokers.value[jokerType].name} aktiviert!`,
+          text: 'Der Joker wurde erfolgreich aktiviert!'
+        }
       } catch (error) {
-        console.error('Joker error:', error)
         showError('Fehler beim Aktivieren des Jokers')
       }
+    }
+
+    const clearJokerMessage = () => {
+      jokerMessage.value = null
+    }
+
+    // Helper functions
+    const getVoteCount = (answerIndex) => voteStats.value.answerCounts[answerIndex] || 0
+    const getVotePercentage = (answerIndex) => voteStats.value.percentages[answerIndex] || 0
+
+    const getWrongPlayerCount = () => {
+      const votes = lobbyStore.currentLobby?.votes?.[currentQuestionIndex.value] || {}
+      const correctAnswer = currentQuestion.value.correctAnswer
+      return Object.values(votes).filter(vote => vote.answer !== correctAnswer).length
     }
 
     const hasPlayerVoted = (playerId) => {
       return lobbyStore.hasPlayerVoted(currentQuestionIndex.value, playerId)
     }
 
-    const handleRetry = async () => {
-      showReconnecting.value = true
-      try {
-        await manualRetry()
-      } finally {
-        showReconnecting.value = false
-      }
+    const getPlayerAnswer = (playerId) => {
+      const vote = lobbyStore.currentLobby?.votes?.[currentQuestionIndex.value]?.[playerId]
+      return vote ? String.fromCharCode(65 + vote.answer) : '?'
     }
 
-    const startNewGame = async () => {
-      if (!isHost.value || isDisconnected.value) return
-      
-      try {
-        // Reset game state
-        await set(dbRef(realtimeDb, `lobbies/${currentLobby.value.code}/gameState/currentQuestionIndex`), 0)
-        await set(dbRef(realtimeDb, `lobbies/${currentLobby.value.code}/gameState/phase`), 'voting')
-        await set(dbRef(realtimeDb, `lobbies/${currentLobby.value.code}/gameState/jokers`), {
-          fiftyFifty: { used: false, activatedBy: null },
-          publikum: { used: false, activatedBy: null },
-          telefon: { used: false, activatedBy: null }
-        })
-        await set(dbRef(realtimeDb, `lobbies/${currentLobby.value.code}/votes`), {})
-        
-        gameStartTime = Date.now()
-        success('Neues Spiel gestartet!')
-        
-      } catch (error) {
-        console.error('Failed to start new game:', error)
-        showError('Fehler beim Starten des neuen Spiels')
+    // Style methods
+    const getHostAnswerClasses = (index) => {
+      if (gamePhase.value === 'reading') {
+        if (hiddenAnswers.value.includes(index)) {
+          return 'bg-white/5 text-white/30 border-2 border-white/10 opacity-30'
+        }
+        return 'bg-white/20 text-white border-2 border-white/30'
+      } else if (gamePhase.value === 'showing_answer') {
+        if (index === currentQuestion.value.correctAnswer) {
+          return 'bg-green-600 text-white border-2 border-green-400 animate-pulse shadow-lg shadow-green-400/50'
+        } else if (hiddenAnswers.value.includes(index)) {
+          return 'bg-white/5 text-white/20 border-2 border-white/10 opacity-30'
+        } else {
+          return 'bg-white/10 text-white/50 border-2 border-white/20'
+        }
       }
+      return 'bg-white/20 text-white border-2 border-white/30'
     }
 
+    const getPlayerAnswerClasses = (index) => {
+      if (gamePhase.value === 'reading') {
+        if (hiddenAnswers.value.includes(index)) {
+          return 'bg-white/5 text-white/30 border-2 border-white/10 opacity-30 cursor-not-allowed'
+        }
+        if (selectedAnswer.value === index) {
+          return 'bg-blue-600/50 text-white border-2 border-blue-400 shadow-lg'
+        }
+        if (hasVotedFinal.value || isDisconnected.value || timeRemaining.value <= 0) {
+          return 'bg-white/10 text-white/50 border-2 border-white/20 cursor-not-allowed'
+        }
+        return 'bg-white/20 text-white border-2 border-white/30 hover:border-orange-400/50 hover:bg-white/30 cursor-pointer'
+      } else if (gamePhase.value === 'showing_answer') {
+        if (index === currentQuestion.value.correctAnswer) {
+          return 'bg-green-600 text-white border-2 border-green-400 animate-pulse'
+        } else if (hiddenAnswers.value.includes(index)) {
+          return 'bg-white/5 text-white/20 border-2 border-white/10 opacity-30'
+        } else {
+          return 'bg-white/10 text-white/50 border-2 border-white/20'
+        }
+      }
+      return 'bg-white/20 text-white border-2 border-white/30 cursor-not-allowed'
+    }
+
+    // Timer functions
     const startTimer = () => {
       timeRemaining.value = 30
       timer = setInterval(() => {
         timeRemaining.value--
         if (timeRemaining.value <= 0) {
           clearInterval(timer)
-          if (isHost.value && gamePhase.value === 'voting') {
+          if (isHost.value && gamePhase.value === 'reading') {
             showAnswer()
           }
         }
@@ -613,43 +613,57 @@ export default {
 
     // Watchers
     watch(() => gamePhase.value, (newPhase) => {
-      if (newPhase === 'voting') {
+      if (newPhase === 'reading') {
         startTimer()
-        selectedAnswer.value = null // Reset selection for new question
-        if (currentQuestionIndex.value === 0) {
-          gameStartTime = Date.now()
-        }
+        selectedAnswer.value = null
+        hasVotedFinal.value = false
       } else {
         stopTimer()
-        if (newPhase === 'finished') {
-          gameTime.value = (Date.now() - gameStartTime) / 1000
-        }
       }
     })
 
     watch(() => allPlayersVoted.value, (allVoted) => {
-      if (allVoted && isHost.value && gamePhase.value === 'voting') {
+      if (allVoted && isHost.value && gamePhase.value === 'reading') {
         setTimeout(showAnswer, 2000)
-      }
-    })
-
-    // Handle disconnection
-    watch(isDisconnected, (disconnected) => {
-      if (disconnected) {
-        stopTimer()
       }
     })
 
     // Lifecycle
     onMounted(async () => {
-      if (currentLobby.value?.gameId) {
+      console.log('Component mounted, lobby data:', currentLobby.value)
+      
+      // Versuche Game-Daten zu laden
+      if (currentLobby.value?.gameData) {
+        // Aus Lobby-Daten laden (für Mitspieler)
+        console.log('Loading game from lobby data')
+        game.value = currentLobby.value.gameData
+      } else if (currentLobby.value?.gameId) {
+        // Aus Store laden (für Host)
+        console.log('Loading game from store')
         game.value = hackeDichtStore.getGame(currentLobby.value.gameId)
+      } else {
+        console.error('No game data available')
       }
       
-      if (gamePhase.value === 'voting') {
+      console.log('Game loaded:', !!game.value, game.value?.name)
+      
+      if (gamePhase.value === 'reading') {
         startTimer()
       }
+      
+      isLoading.value = false
     })
+
+    // Watch für Lobby-Updates
+    watch(() => currentLobby.value, (newLobby) => {
+      console.log('Lobby updated:', newLobby)
+      
+      // Game-Daten aus Lobby laden wenn verfügbar
+      if (newLobby?.gameData && !game.value) {
+        console.log('Loading game data from updated lobby')
+        game.value = newLobby.gameData
+      }
+    }, { deep: true })
 
     onUnmounted(() => {
       stopTimer()
@@ -657,20 +671,74 @@ export default {
 
     return {
       // State
-      game, currentLobby, isHost, currentPlayer, players, gameState,
-      submittingVote, timeRemaining, selectedAnswer, showReconnecting, gameTime,
+      game, isLoading, currentQuestionIndex, gamePhase, showResults,
+      showProgressScreen, selectedAnswer, hasVotedFinal, submittingVote,
+      jokerMessage, hiddenAnswers, timeRemaining,
+      
+      // Lobby state
+      currentLobby, isHost, currentPlayer, players, gameState, connectionStatus,
       
       // Computed
-      currentQuestionIndex, gamePhase, currentQuestion, currentReward,
-      isLastQuestion, playerList, onlinePlayerCount, voteStats,
-      votedPlayerCount, allPlayersVoted, hasVoted, showVotes, availableJokers,
-      isDisconnected, isConnecting, isOnline, connectionStatus,
+      currentQuestion, currentReward, isLastQuestion, realPlayerList,
+      realPlayerCount, voteStats, votedPlayerCount, allPlayersVoted,
+      showVotes, showPlayerAnswers, isDisconnected, availableJokers,
       
       // Methods
-      getVoteCount, getVotePercentage, getAnswerClasses, 
-      submitVote: submitPlayerVote, showAnswer, nextQuestion, activateJoker, 
-      hasPlayerVoted, handleRetry, startNewGame
+      continueFromProgress, showAnswer, nextQuestion, restartGame,
+      selectAnswer, submitFinalVote, activateJoker, clearJokerMessage,
+      getVoteCount, getVotePercentage, getWrongPlayerCount,
+      hasPlayerVoted, getPlayerAnswer, getHostAnswerClasses, getPlayerAnswerClasses
     }
   }
 }
 </script>
+
+<style scoped>
+@media (max-width: 768px) {
+  .max-w-4xl {
+    max-width: 100%;
+  }
+  
+  .grid-cols-2 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+  
+  .text-2xl {
+    font-size: 1.5rem;
+  }
+  
+  .p-8 {
+    padding: 1.5rem;
+  }
+  
+  .fixed.top-4.left-4 {
+    position: fixed;
+    bottom: 1rem;
+    left: 50%;
+    top: auto;
+    transform: translateX(-50%);
+    flex-direction: row;
+  }
+  
+  .w-16.h-16 {
+    width: 3rem;
+    height: 3rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .text-xl {
+    font-size: 1.125rem;
+  }
+  
+  .py-4 {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+  
+  .px-8 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+</style>

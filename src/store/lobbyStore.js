@@ -38,7 +38,7 @@ export const lobbyStore = reactive({
         status: 'waiting', // 'waiting', 'starting', 'playing', 'finished'
         createdAt: serverTimestamp(),
         settings: {
-          maxPlayers: 8,
+          maxPlayers: 20,
           questionTimer: 30, // Sekunden
         },
         gameState: {
@@ -52,15 +52,16 @@ export const lobbyStore = reactive({
           }
         },
         players: {
-          [hostId]: {
-            id: hostId,
-            name: hostName,
-            isHost: true,
-            isOnline: true,
-            icon: '👑', // Host bekommt Krone
-            joinedAt: serverTimestamp(),
-            lastSeen: serverTimestamp()
-          }
+            [hostId]: {
+                id: hostId,
+                name: hostName,
+                isHost: true,
+                isOnline: true,
+                icon: '👑',
+                joinedAt: serverTimestamp(),
+                lastSeen: serverTimestamp(),
+                isModerator: true // Host ist Moderator, nicht Spieler
+            }
         },
         votes: {}, // questionIndex: { playerId: { answer: answerIndex, timestamp } }
         chat: [] // Optional für späteren Chat
@@ -267,7 +268,7 @@ export const lobbyStore = reactive({
   // Joker aktivieren (nur Host)
   async activateJoker(jokerType) {
     if (!this.isHost || !this.currentLobby) return
-    
+        
     try {
       const jokerRef = dbRef(realtimeDb, `lobbies/${this.currentLobby.code}/gameState/jokers/${jokerType}`)
       await set(jokerRef, {
@@ -502,9 +503,12 @@ export const lobbyStore = reactive({
     return !!this.currentLobby?.votes?.[questionIndex]?.[pid]
   },
   
-  allPlayersVoted(questionIndex) {
-    const onlinePlayers = Object.values(this.players).filter(p => p.isOnline).length
+    allPlayersVoted(questionIndex) {
+    const realPlayers = Object.values(this.players).filter(p => p.isOnline && !p.isModerator).length
     const votes = Object.keys(this.currentLobby?.votes?.[questionIndex] || {}).length
-    return votes >= onlinePlayers
-  }
+    return votes >= realPlayers
+    },
+    getRealPlayerCount() {
+        return Object.values(this.players).filter(p => p.isOnline && !p.isModerator).length
+    },
 })
