@@ -1,9 +1,17 @@
 <template>
   <div class="min-h-screen p-4">
     <div class="max-w-6xl mx-auto">
+      <!-- Audio Controls -->
+      <AudioControls 
+        :is-audio-enabled="isAudioEnabled"
+        :is-playing="isPlaying"
+        @toggle-audio-enabled="toggleAudioEnabled"
+        @toggle-audio="toggleAudio"
+      />
+
       <GameHeader 
         :game-name="game?.name || 'Wer wird hacke dicht?'"
-        @back="$router.push('/hacke-dicht/gallery')"
+        @back="handleBackToGallery"
       />
 
       <PasswordBlockedView 
@@ -31,7 +39,7 @@
       <ResultsView
         v-else-if="showResults"
         @restart="restartGame"
-        @back-to-gallery="$router.push('/hacke-dicht/gallery')"
+        @back-to-gallery="handleBackToGallery"
       />
 
       <QuestionView
@@ -58,10 +66,11 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { hackeDichtStore } from '../store/hackeDichtStore'
 import { playerStore } from '../store/playerStore'
+import { useAudio } from '../composables/useAudio'
 
 // Import Components
 import GameHeader from '../components/hacke-dicht/GameHeader.vue'
@@ -73,6 +82,7 @@ import EventQuestionView from '../components/hacke-dicht/EventQuestionView.vue'
 import ResultsView from '../components/hacke-dicht/ResultsView.vue'
 import QuestionView from '../components/hacke-dicht/QuestionView.vue'
 import JokerMessageModal from '../components/hacke-dicht/JokerMessageModal.vue'
+import AudioControls from '../components/AudioControls.vue'
 
 export default {
   name: 'HackeDichtPlay',
@@ -85,7 +95,8 @@ export default {
     EventQuestionView,
     ResultsView,
     QuestionView,
-    JokerMessageModal
+    JokerMessageModal,
+    AudioControls
   },
   props: {
     gameId: {
@@ -95,6 +106,20 @@ export default {
   },
   setup(props) {
     const router = useRouter()
+    
+    // Audio System
+    const {
+      isAudioEnabled,
+      isPlaying,
+      stopAudio,
+      toggleAudio,
+      toggleAudioEnabled,
+      playQuestionAudio,
+      playCorrectAnswerAudio,
+      playJokerAudio,
+      playGameStartAudio,
+      initAudio
+    } = useAudio()
     
     // Reactive state
     const isLoading = ref(true)
@@ -162,14 +187,22 @@ export default {
       return false
     }
 
-    // Game flow methods
+    // Game flow methods mit Audio
     const continueFromProgress = () => {
       showProgressScreen.value = false
       gamePhase.value = 'reading'
+      
+      // Audio für die aktuelle Frage starten
+      const questionNumber = currentQuestionIndex.value + 1
+      playQuestionAudio(questionNumber)
     }
 
     const showAnswer = () => {
       gamePhase.value = 'showing_answer'
+      
+      // Hintergrundmusik stoppen und Richtige-Antwort-Sound spielen
+      stopAudio()
+      playCorrectAnswerAudio()
     }
 
     const nextQuestion = () => {
@@ -191,6 +224,8 @@ export default {
         currentEventQuestion.value = eventQueue.value.shift()
         showEventQuestion.value = true
         gamePhase.value = 'event'
+        // Audio für Events stoppen
+        stopAudio()
       } else {
         proceedToNextQuestion()
       }
@@ -208,10 +243,12 @@ export default {
     const proceedToNextQuestion = () => {
       if (isLastQuestion.value) {
         showResults.value = true
+        stopAudio() // Audio stoppen am Ende
       } else {
         currentQuestionIndex.value++
         showProgressScreen.value = true
         gamePhase.value = 'progress'
+        stopAudio() // Zwischen Fragen Audio stoppen
       }
     }
 
@@ -231,11 +268,25 @@ export default {
       }
       hiddenAnswers.value = []
       jokerMessage.value = null
+      
+      // Audio für Spielstart
+      stopAudio()
+      setTimeout(() => {
+        playGameStartAudio()
+      }, 500)
     }
 
-    // Joker handling
+    const handleBackToGallery = () => {
+      stopAudio() // Audio stoppen beim Verlassen
+      router.push('/hacke-dicht/gallery')
+    }
+
+    // Joker handling mit Audio
     const handleJokerUse = (jokerType) => {
       if (gamePhase.value !== 'reading') return
+
+      // Joker Sound abspielen
+      playJokerAudio(jokerType)
 
       switch (jokerType) {
         case 'fiftyFifty':
@@ -336,12 +387,25 @@ export default {
           return
         }
 
+        // Audio beim Start initialisieren
+        initAudio()
+        
+        // Spiel-Start Audio nach kurzer Verzögerung
+        setTimeout(() => {
+          playGameStartAudio()
+        }, 1000)
+
       } catch (error) {
         console.error('Error loading game:', error)
       } finally {
         isLoading.value = false
       }
     }
+
+    // Cleanup beim Verlassen der Komponente
+    onUnmounted(() => {
+      stopAudio()
+    })
 
     onMounted(() => {
       initializeGame()
@@ -365,6 +429,10 @@ export default {
       hiddenAnswers,
       jokerMessage,
       
+      // Audio State
+      isAudioEnabled,
+      isPlaying,
+      
       // Methods
       continueFromProgress,
       showAnswer,
@@ -372,7 +440,12 @@ export default {
       continueAfterEvent,
       restartGame,
       handleJokerUse,
-      clearJokerMessage
+      clearJokerMessage,
+      handleBackToGallery,
+      
+      // Audio Methods
+      toggleAudio,
+      toggleAudioEnabled
     }
   }
 }
