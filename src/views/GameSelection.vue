@@ -1,43 +1,6 @@
 <template>
   <div class="min-h-screen p-4">
     <div class="max-w-6xl mx-auto">
-      <div class="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20 mb-8">
-        <div class="flex justify-between items-center">
-          <div class="flex items-center gap-4">
-            <div class="flex items-center gap-2">
-              <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
-              </svg>
-              <span class="text-white font-medium">{{ playerStore.players.length }} Spieler:</span>
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <span 
-                v-for="player in playerStore.players.slice(0, 5)" 
-                :key="player.id"
-                class="bg-purple-600/30 text-purple-200 px-3 py-1 rounded-full text-sm"
-              >
-                {{ player.name }}
-              </span>
-              <span 
-                v-if="playerStore.players.length > 5"
-                class="bg-purple-600/20 text-purple-300 px-3 py-1 rounded-full text-sm"
-              >
-                +{{ playerStore.players.length - 5 }} weitere
-              </span>
-            </div>
-          </div>
-          <button
-            @click="$router.push('/players')"
-            class="text-purple-200 hover:text-white text-sm flex items-center gap-1"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-            </svg>
-            Spieler bearbeiten
-          </button>
-        </div>
-      </div>
-
       <div class="text-center mb-12">
         <h1 class="text-4xl font-bold text-white mb-4">Spiele auswählen</h1>
         <p class="text-purple-200 text-lg">Wähle ein Spiel aus, das du spielen möchtest</p>

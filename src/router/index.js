@@ -1,7 +1,5 @@
-// src/router/index.js - Fixed Routes
 import { createRouter, createWebHashHistory } from 'vue-router'
 import Login from '../views/Login.vue'
-import PlayerSetup from '../views/PlayerSetup.vue'
 import GameSelection from '../views/GameSelection.vue'
 import Gallery from '../views/Gallery.vue'
 import EditDeck from '../views/EditDeck.vue'
@@ -9,21 +7,15 @@ import PlayDeck from '../views/PlayDeck.vue'
 import HackeDichtGallery from '../views/HackeDichtGallery.vue'
 import HackeDichtEditor from '../views/HackeDichtEditor.vue'
 import HackeDichtPlay from '../views/HackeDichtPlay.vue'
-import JoinLobby from '../views/JoinLobby.vue'
-import PlayerLobby from '../views/PlayerLobby.vue'
-import HackeDichtLobby from '../views/HackeDichtLobby.vue'
 import HackeDichtPlayMultiplayer from '../views/HackeDichtPlayMultiplayer.vue'
+import HackeDichtPlayerView from '../views/HackeDichtPlayerView.vue'
+
 
 const routes = [
   {
     path: '/',
     name: 'Login',
     component: Login
-  },
-  {
-    path: '/players',
-    name: 'PlayerSetup',
-    component: PlayerSetup
   },
   {
     path: '/games',
@@ -71,36 +63,20 @@ const routes = [
     component: HackeDichtPlay,
     props: true
   },
-  // FIX: Korrekte Multiplayer Lobby Route für Host
+  // Multiplayer Routes
   {
-    path: '/hacke-dicht/lobby/:gameId',
-    name: 'HackeDichtLobby',
-    component: HackeDichtLobby,
-    props: true,
-    meta: { requiresAuth: true } // Host muss eingeloggt sein
-  },
-  // Multiplayer Game Routes
-  {
-    path: '/hacke-dicht/play-multiplayer/:lobbyCode',
+    path: '/hacke-dicht/play-multiplayer/:gameId', // Geändert: gameId statt lobbyCode
     name: 'HackeDichtPlayMultiplayer',
     component: HackeDichtPlayMultiplayer,
     props: true,
-    meta: { requiresAuth: false } // Spieler müssen nicht eingeloggt sein
-  },
-  // Join Lobby Routes (für Spieler)
-  {
-    path: '/join/:lobbyCode?',
-    name: 'JoinLobby',
-    component: JoinLobby,
-    props: route => ({ code: route.params.lobbyCode || '' }),
-    meta: { requiresAuth: false }
+    meta: { requiresAuth: true } // Host muss eingeloggt sein
   },
   {
-    path: '/lobby/:lobbyCode',
-    name: 'PlayerLobby',
-    component: PlayerLobby,
+    path: '/play-mobile/:lobbyCode', // Neue mobile Route für Spieler
+    name: 'HackeDichtPlayerView',
+    component: HackeDichtPlayerView,
     props: true,
-    meta: { requiresAuth: false }
+    meta: { requiresAuth: false } // Spieler müssen nicht eingeloggt sein
   },
   // Legacy redirects
   {
@@ -125,9 +101,8 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const isAuthenticated = localStorage.getItem('authenticated') === 'true'
   
-  // Allow certain routes without authentication
-  const publicRoutes = ['JoinLobby', 'PlayerLobby', 'HackeDichtPlayMultiplayer']
-  if (publicRoutes.includes(to.name)) {
+  // Allow mobile player route without authentication
+  if (to.name === 'HackeDichtPlayerView') {
     next()
     return
   }
@@ -135,7 +110,7 @@ router.beforeEach((to, from, next) => {
   if (to.name !== 'Login' && !isAuthenticated) {
     next({ name: 'Login' })
   } else if (to.name === 'Login' && isAuthenticated) {
-    next({ name: 'PlayerSetup' })
+    next({ name: 'GameSelection' })
   } else {
     next()
   }

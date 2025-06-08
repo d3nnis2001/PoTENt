@@ -66,13 +66,12 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { hackeDichtStore } from '../store/hackeDichtStore'
-import { playerStore } from '../store/playerStore'
 import { useAudio } from '../composables/useAudio'
 
-// Import Components
+// Import bestehende Komponenten
 import GameHeader from '../components/hacke-dicht/GameHeader.vue'
 import PasswordBlockedView from '../components/hacke-dicht/PasswordBlockedView.vue'
 import LoadingView from '../components/hacke-dicht/LoadingView.vue'
@@ -121,7 +120,7 @@ export default {
       initAudio
     } = useAudio()
     
-    // Reactive state
+    // REINER SINGLE-PLAYER STATE (keine Lobby)
     const isLoading = ref(true)
     const game = ref(null)
     const needsPassword = ref(false)
@@ -133,7 +132,7 @@ export default {
     const currentEventQuestion = ref(null)
     const eventQueue = ref([])
 
-    // Joker system
+    // Joker system (Single-Player)
     const jokers = ref({
       fiftyFifty: { used: false },
       randomPerson: { used: false },
@@ -160,7 +159,7 @@ export default {
       return currentQuestionIndex.value >= 14
     })
 
-    // Game access check
+    // Game access check (vereinfacht ohne passwordUtils)
     const checkGameAccess = () => {
       if (!game.value) return false
       if (!game.value.isProtected) return true
@@ -187,7 +186,7 @@ export default {
       return false
     }
 
-    // Game flow methods mit Audio
+    // PURE SINGLE-PLAYER GAME FLOW (keine Lobby-Kommunikation)
     const continueFromProgress = () => {
       showProgressScreen.value = false
       gamePhase.value = 'reading'
@@ -224,7 +223,6 @@ export default {
         currentEventQuestion.value = eventQueue.value.shift()
         showEventQuestion.value = true
         gamePhase.value = 'event'
-        // Audio für Events stoppen
         stopAudio()
       } else {
         proceedToNextQuestion()
@@ -243,12 +241,12 @@ export default {
     const proceedToNextQuestion = () => {
       if (isLastQuestion.value) {
         showResults.value = true
-        stopAudio() // Audio stoppen am Ende
+        stopAudio()
       } else {
         currentQuestionIndex.value++
         showProgressScreen.value = true
         gamePhase.value = 'progress'
-        stopAudio() // Zwischen Fragen Audio stoppen
+        stopAudio()
       }
     }
 
@@ -269,7 +267,6 @@ export default {
       hiddenAnswers.value = []
       jokerMessage.value = null
       
-      // Audio für Spielstart
       stopAudio()
       setTimeout(() => {
         playGameStartAudio()
@@ -277,15 +274,14 @@ export default {
     }
 
     const handleBackToGallery = () => {
-      stopAudio() // Audio stoppen beim Verlassen
+      stopAudio()
       router.push('/hacke-dicht/gallery')
     }
 
-    // Joker handling mit Audio
+    // SINGLE-PLAYER JOKER HANDLING (ohne echte Spieler)
     const handleJokerUse = (jokerType) => {
       if (gamePhase.value !== 'reading') return
 
-      // Joker Sound abspielen
       playJokerAudio(jokerType)
 
       switch (jokerType) {
@@ -328,22 +324,14 @@ export default {
       
       jokers.value.randomPerson.used = true
       
-      const players = playerStore.getPlayerNames()
-      if (players.length === 0) {
-        jokerMessage.value = {
-          type: 'randomPerson',
-          title: 'Random Person Joker aktiviert!',
-          text: 'Keine Spieler verfügbar. Ihr müsst selbst entscheiden!'
-        }
-        return
-      }
-      
-      const randomPlayer = players[Math.floor(Math.random() * players.length)]
+      // SINGLE-PLAYER VERSION - kein echter Spieler
+      const fakePlayerNames = ['Alex', 'Sam', 'Jordan', 'Taylor', 'Robin', 'Casey']
+      const randomPlayer = fakePlayerNames[Math.floor(Math.random() * fakePlayerNames.length)]
       
       jokerMessage.value = {
         type: 'randomPerson',
         title: 'Random Person Joker aktiviert!',
-        text: `${randomPlayer} muss ihre/seine Antwort preisgeben und erklären, warum sie/er diese Wahl getroffen hat!`
+        text: `${randomPlayer} würde jetzt ihre/seine Antwort preisgeben müssen! (Single-Player Modus)`
       }
     }
 
@@ -355,7 +343,7 @@ export default {
       jokerMessage.value = {
         type: 'reveal',
         title: 'Reveal Joker aktiviert!',
-        text: 'Alle Spieler müssen jetzt ihre Karten aufdecken und ihre gewählten Antworten zeigen!'
+        text: 'Alle Spieler würden jetzt ihre Karten aufdecken! (Single-Player Modus)'
       }
     }
 
@@ -363,13 +351,12 @@ export default {
       jokerMessage.value = null
     }
 
-    // Initialize game
+    // Initialize game (OHNE LOBBY)
     const initializeGame = async () => {
       isLoading.value = true
       
       try {
         await hackeDichtStore.loadGames()
-        await playerStore.loadPlayers()
         const gameData = hackeDichtStore.getGame(parseInt(props.gameId))
         
         if (!gameData) {
@@ -402,13 +389,12 @@ export default {
       }
     }
 
-    // Cleanup beim Verlassen der Komponente
-    onUnmounted(() => {
-      stopAudio()
-    })
-
     onMounted(() => {
       initializeGame()
+    })
+
+    onUnmounted(() => {
+      stopAudio()
     })
 
     return {

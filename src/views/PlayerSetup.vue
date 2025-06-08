@@ -1,4 +1,3 @@
-<!-- src/views/PlayerSetup.vue -->
 <template>
   <div class="min-h-screen p-4">
     <div class="max-w-4xl mx-auto">

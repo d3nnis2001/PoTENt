@@ -14,31 +14,30 @@ export function useLobby() {
   const gameState = computed(() => lobbyStore.gameState)
   const connectionStatus = computed(() => lobbyStore.connectionStatus)
   
-  // Computed properties
   const onlinePlayers = computed(() => lobbyStore.getOnlinePlayers())
   const playerCount = computed(() => lobbyStore.getPlayerCount())
   const canStartGame = computed(() => lobbyStore.canStartGame())
   
-  // Lobby erstellen
-  const createLobby = async (gameId, hostName) => {
+    const createLobby = async (gameId, hostName, gameData) => {
     try {
-      error.value = ''
-      isLoading.value = true
-      
-      if (!isValidPlayerName(hostName)) {
+        error.value = ''
+        isLoading.value = true
+        
+        if (!isValidPlayerName(hostName)) {
         throw new Error('Ungültiger Name')
-      }
-      
-      const lobbyCode = await lobbyStore.createLobby(gameId, hostName)
-      return lobbyCode
-      
+        }
+        
+        // GEÄNDERT: gameData als Parameter weiterreichen
+        const lobbyCode = await lobbyStore.createLobby(gameId, hostName, gameData)
+        return lobbyCode
+        
     } catch (err) {
-      error.value = err.message
-      throw err
+        error.value = err.message
+        throw err
     } finally {
-      isLoading.value = false
+        isLoading.value = false
     }
-  }
+    }
   
   // Lobby beitreten
   const joinLobby = async (lobbyCode, playerName, playerIcon) => {

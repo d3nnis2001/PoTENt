@@ -383,21 +383,21 @@ export default {
       }
     }
 
-    // FIX: playMultiplayer function hinzugefügt
-    const playMultiplayer = async (game) => {
-      if (!isGamePlayable(game)) {
-        showError('Spiel ist nicht vollständig! Bitte bearbeite es zuerst.')
-        return
-      }
-      
-      if (game.isProtected && !checkGameAccess(game)) {
-        selectedGame.value = game
-        pendingAction.value = 'multiplayer'
-        showPasswordModal.value = true
-      } else {
-        router.push(`/hacke-dicht/lobby/${game.id}`)
-      }
+
+  const playMultiplayer = async (game) => {
+    if (!isGamePlayable(game)) {
+      showError('Spiel ist nicht vollständig! Bitte bearbeite es zuerst.')
+      return
     }
+    
+    if (game.isProtected && !checkGameAccess(game)) {
+      selectedGame.value = game
+      pendingAction.value = 'multiplayer'
+      showPasswordModal.value = true
+    } else {
+      router.push(`/hacke-dicht/play-multiplayer/${game.id}`)
+    }
+  }
 
     const deleteGame = (gameId) => {
       if (confirm('Möchtest du dieses Quiz wirklich löschen?')) {
