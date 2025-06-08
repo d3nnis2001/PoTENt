@@ -6,7 +6,8 @@ import {
   onValue, 
   remove,
   serverTimestamp,
-  onDisconnect
+  onDisconnect,
+  update
 } from 'firebase/database'
 import { realtimeDb } from '../firebase/config'
 
@@ -201,29 +202,41 @@ export const lobbyStore = reactive({
     }
   },
   
-  // Nächste Frage (nur Host)
-  async nextQuestion() {
+    async nextQuestion() {
     if (!this.isHost || !this.currentLobby) return
     
     try {
-      const nextIndex = this.currentLobby.gameState.currentQuestionIndex + 1
-      const lobbyCode = this.currentLobby.code
-      
-      if (nextIndex >= 15) {
+        const nextIndex = this.currentLobby.gameState.currentQuestionIndex + 1
+        const lobbyCode = this.currentLobby.code
+        
+        if (nextIndex >= 15) {
         // Spiel beenden
-        await set(dbRef(realtimeDb, `lobbies/${lobbyCode}/status`), 'finished')
-        await set(dbRef(realtimeDb, `lobbies/${lobbyCode}/gameState/phase`), 'finished')
-      } else {
-        // Nächste Frage
-        await set(dbRef(realtimeDb, `lobbies/${lobbyCode}/gameState/currentQuestionIndex`), nextIndex)
-        await set(dbRef(realtimeDb, `lobbies/${lobbyCode}/gameState/phase`), 'voting')
-        await set(dbRef(realtimeDb, `lobbies/${lobbyCode}/gameState/questionStartTime`), serverTimestamp())
-      }
+        const updates = {}
+        updates[`lobbies/${lobbyCode}/status`] = 'finished'
+        updates[`lobbies/${lobbyCode}/gameState/phase`] = 'finished'
+        updates[`lobbies/${lobbyCode}/gameState/finishedAt`] = serverTimestamp()
+        
+        await update(dbRef(realtimeDb), updates)
+        } else {
+        // Nächste Frage - ATOMIC UPDATE für Synchronisation
+        const updates = {}
+        updates[`lobbies/${lobbyCode}/gameState/currentQuestionIndex`] = nextIndex
+        updates[`lobbies/${lobbyCode}/gameState/phase`] = 'voting'
+        updates[`lobbies/${lobbyCode}/gameState/questionStartTime`] = serverTimestamp()
+        
+        // Votes für neue Frage löschen (wichtig für clean state)
+        updates[`lobbies/${lobbyCode}/votes/${nextIndex}`] = null
+        
+        // ATOMIC UPDATE - alle Änderungen gleichzeitig
+        await update(dbRef(realtimeDb), updates)
+        
+        console.log(`Frage ${nextIndex} gestartet`)
+        }
     } catch (error) {
-      console.error('Fehler bei nächster Frage:', error)
-      throw error
+        console.error('Fehler bei nächster Frage:', error)
+        throw error
     }
-  },
+    },
   
   // Antwort zeigen (nur Host)
   async showAnswer() {

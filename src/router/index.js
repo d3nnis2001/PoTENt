@@ -65,18 +65,18 @@ const routes = [
   },
   // Multiplayer Routes
   {
-    path: '/hacke-dicht/play-multiplayer/:gameId', // Geändert: gameId statt lobbyCode
+    path: '/hacke-dicht/play-multiplayer/:gameId',
     name: 'HackeDichtPlayMultiplayer',
     component: HackeDichtPlayMultiplayer,
     props: true,
-    meta: { requiresAuth: true } // Host muss eingeloggt sein
+    meta: { requiresAuth: true }
   },
   {
-    path: '/play-mobile/:lobbyCode', // Neue mobile Route für Spieler
+    path: '/play-mobile/:lobbyCode',
     name: 'HackeDichtPlayerView',
     component: HackeDichtPlayerView,
     props: true,
-    meta: { requiresAuth: false } // Spieler müssen nicht eingeloggt sein
+    meta: { requiresAuth: false }
   },
   // Legacy redirects
   {

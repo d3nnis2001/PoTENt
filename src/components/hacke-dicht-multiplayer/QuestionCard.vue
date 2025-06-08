@@ -5,7 +5,7 @@
         {{ question.question }}
       </p>
 
-      <!-- Answer Options -->
+      <!-- Answer Options mit integrierten Vote-Displays -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <!-- Host View -->
         <div
@@ -13,7 +13,7 @@
           v-for="(answer, index) in question.answers"
           :key="`host-${index}`"
           :class="[
-            'p-4 rounded-lg font-medium text-left flex items-center gap-3 min-h-[60px] transition-all duration-500',
+            'p-4 rounded-lg font-medium text-left flex items-center gap-3 min-h-[60px] transition-all duration-500 relative',
             getHostAnswerClasses(index)
           ]"
         >
@@ -22,13 +22,16 @@
           </span>
           <span class="flex-1">{{ answer.text }}</span>
           
-          <!-- Vote Count & Progress Bar -->
-          <div v-if="showVotes" class="text-right min-w-[60px]">
-            <div class="text-lg font-bold">{{ voteStats.answerCounts[index] || 0 }}</div>
-            <div class="text-sm opacity-75">{{ voteStats.percentages[index] || 0 }}%</div>
-            <div class="w-12 bg-black/20 rounded-full h-1 mt-1">
+          <!-- Vote Display direkt in der Antwort -->
+          <div v-if="showVotes" class="flex flex-col items-end min-w-[80px]">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-lg font-bold">{{ voteStats.answerCounts[index] || 0 }}</span>
+              <span class="text-sm opacity-75">({{ voteStats.percentages[index] || 0 }}%)</span>
+            </div>
+            <!-- Mini Progress Bar -->
+            <div class="w-16 bg-black/20 rounded-full h-2">
               <div 
-                class="bg-white h-1 rounded-full transition-all duration-1000"
+                class="bg-white h-2 rounded-full transition-all duration-1000"
                 :style="{ width: `${voteStats.percentages[index] || 0}%` }"
               ></div>
             </div>
@@ -60,23 +63,52 @@
       <!-- Action Buttons -->
       <div class="text-center">
         <!-- Host Actions -->
-        <button
-          v-if="isHost && gamePhase === 'reading'"
-          @click="$emit('show-answer')"
-          :disabled="(!allPlayersVoted && timeRemaining > 0) || isDisconnected"
-          class="bg-white text-orange-600 py-4 px-8 rounded-lg font-bold text-xl hover:bg-gray-100 transition-colors disabled:opacity-50"
-        >
-          {{ allPlayersVoted ? 'Antwort zeigen' : `Warten (${votedPlayerCount}/${realPlayerCount})` }}
-        </button>
-        
-        <button
-          v-else-if="isHost && gamePhase === 'showing_answer'"
-          @click="$emit('next-question')"
-          :disabled="isDisconnected"
-          class="bg-white text-orange-600 py-4 px-8 rounded-lg font-bold text-xl hover:bg-gray-100 transition-colors disabled:opacity-50"
-        >
-          {{ isLastQuestion ? 'Quiz beenden' : 'Nächste Frage' }}
-        </button>
+        <div v-if="isHost" class="space-y-4">
+          <!-- Voting Progress Display -->
+          <div v-if="gamePhase === 'reading'" class="bg-white/10 rounded-lg p-4">
+            <div class="flex items-center justify-center gap-4 text-white">
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                </svg>
+                <span>{{ votedPlayerCount }}/{{ realPlayerCount }} abgestimmt</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span v-if="timeRemaining > 0">{{ timeRemaining }}s</span>
+                <span v-else class="text-red-300">Zeit abgelaufen!</span>
+              </div>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="w-full bg-white/20 rounded-full h-2 mt-3">
+              <div 
+                class="bg-green-500 h-2 rounded-full transition-all duration-500"
+                :style="{ width: `${(votedPlayerCount / Math.max(realPlayerCount, 1)) * 100}%` }"
+              ></div>
+            </div>
+          </div>
+          
+          <button
+            v-if="gamePhase === 'reading'"
+            @click="$emit('show-answer')"
+            :disabled="!canShowAnswer"
+            class="bg-white text-orange-600 py-4 px-8 rounded-lg font-bold text-xl hover:bg-gray-100 transition-colors disabled:opacity-50"
+          >
+            {{ getShowAnswerButtonText }}
+          </button>
+          
+          <button
+            v-else-if="gamePhase === 'showing_answer'"
+            @click="$emit('next-question')"
+            :disabled="isDisconnected"
+            class="bg-white text-orange-600 py-4 px-8 rounded-lg font-bold text-xl hover:bg-gray-100 transition-colors disabled:opacity-50"
+          >
+            {{ isLastQuestion ? 'Quiz beenden' : 'Nächste Frage' }}
+          </button>
+        </div>
 
         <!-- Player Actions -->
         <div v-else-if="!isHost">
@@ -126,68 +158,38 @@
 export default {
   name: 'QuestionCard',
   props: {
-    question: {
-      type: Object,
-      required: true
-    },
-    gamePhase: {
-      type: String,
-      required: true
-    },
-    hiddenAnswers: {
-      type: Array,
-      required: true
-    },
-    isLastQuestion: {
-      type: Boolean,
-      required: true
-    },
-    isHost: {
-      type: Boolean,
-      required: true
-    },
-    selectedAnswer: {
-      type: Number,
-      default: null
-    },
-    hasVotedFinal: {
-      type: Boolean,
-      required: true
-    },
-    submittingVote: {
-      type: Boolean,
-      required: true
-    },
-    voteStats: {
-      type: Object,
-      required: true
-    },
-    showVotes: {
-      type: Boolean,
-      required: true
-    },
-    realPlayerCount: {
-      type: Number,
-      required: true
-    },
-    votedPlayerCount: {
-      type: Number,
-      required: true
-    },
-    allPlayersVoted: {
-      type: Boolean,
-      required: true
-    },
-    timeRemaining: {
-      type: Number,
-      required: true
-    },
-    isDisconnected: {
-      type: Boolean,
-      required: true
-    }
+    question: { type: Object, required: true },
+    gamePhase: { type: String, required: true },
+    hiddenAnswers: { type: Array, required: true },
+    isLastQuestion: { type: Boolean, required: true },
+    isHost: { type: Boolean, required: true },
+    selectedAnswer: { type: Number, default: null },
+    hasVotedFinal: { type: Boolean, required: true },
+    submittingVote: { type: Boolean, required: true },
+    voteStats: { type: Object, required: true },
+    showVotes: { type: Boolean, required: true },
+    realPlayerCount: { type: Number, required: true },
+    votedPlayerCount: { type: Number, required: true },
+    allPlayersVoted: { type: Boolean, required: true },
+    timeRemaining: { type: Number, required: true },
+    isDisconnected: { type: Boolean, required: true }
   },
   emits: ['show-answer', 'next-question', 'select-answer', 'submit-final-vote'],
+  computed: {
+    canShowAnswer() {
+      return this.allPlayersVoted || this.timeRemaining <= 0
+    },
+    
+    getShowAnswerButtonText() {
+      if (this.timeRemaining <= 0) {
+        return 'Zeit abgelaufen - Antwort zeigen'
+      }
+      if (this.allPlayersVoted) {
+        return 'Alle haben geantwortet - Antwort zeigen'
+      }
+      return `Warten auf Spieler (${this.votedPlayerCount}/${this.realPlayerCount})`
+    }
+  },
   methods: {
     getHostAnswerClasses(index) {
       if (this.gamePhase === 'reading') {

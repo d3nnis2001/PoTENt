@@ -26,8 +26,10 @@ export function useLobby() {
         if (!isValidPlayerName(hostName)) {
         throw new Error('Ungültiger Name')
         }
+        if (!gameData) {
+        throw new Error('Spieldaten fehlen')
+        }
         
-        // GEÄNDERT: gameData als Parameter weiterreichen
         const lobbyCode = await lobbyStore.createLobby(gameId, hostName, gameData)
         return lobbyCode
         

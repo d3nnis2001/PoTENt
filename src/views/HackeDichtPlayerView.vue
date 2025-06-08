@@ -101,6 +101,34 @@
           </div>
         </div>
 
+        <!-- Joker Display (nur anzeigen, nicht klickbar) -->
+        <div v-if="hasAvailableJokers" class="mb-4">
+          <div class="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
+            <h4 class="text-white font-bold mb-3 text-center text-sm">🃏 Verfügbare Joker</h4>
+            <div class="flex justify-center gap-2">
+              <div
+                v-for="(joker, type) in availableJokers"
+                :key="type"
+                :class="[
+                  'relative p-2 rounded-lg border flex flex-col items-center gap-1 min-w-[60px]',
+                  joker.used 
+                    ? 'bg-gray-600/20 border-gray-400/30 opacity-50' 
+                    : getJokerColorClass(type)
+                ]"
+              >
+                <div class="text-lg">{{ getJokerIcon(type) }}</div>
+                <span class="text-xs text-white text-center leading-tight">{{ getJokerShortName(type) }}</span>
+                
+                <!-- Durchgestrichen wenn benutzt -->
+                <div v-if="joker.used" class="absolute inset-0 flex items-center justify-center">
+                  <div class="w-full h-0.5 bg-red-500 transform rotate-45"></div>
+                  <div class="absolute w-full h-0.5 bg-red-500 transform -rotate-45"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Question Text -->
         <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
           <p class="text-white text-lg leading-relaxed text-center">
@@ -200,18 +228,6 @@
         </button>
       </div>
 
-      <!-- Joker Notifications -->
-      <div v-if="activeJokers.length > 0" class="mt-6">
-        <div class="bg-yellow-600/20 backdrop-blur-lg rounded-xl p-4 border border-yellow-400/30">
-          <h4 class="text-white font-bold mb-2">🃏 Aktive Joker:</h4>
-          <div class="space-y-1">
-            <div v-for="joker in activeJokers" :key="joker" class="text-yellow-200 text-sm">
-              • {{ getJokerName(joker) }}
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Error Display -->
       <div v-if="error" class="mt-4 p-3 bg-red-600/20 border border-red-400/30 rounded-lg">
         <p class="text-red-300 text-sm text-center">{{ error }}</p>
@@ -256,12 +272,15 @@ export default {
     const timeRemaining = ref(30)
     const hiddenAnswers = ref([])
     const activeJokers = ref([])
+    const questionTimer = ref(null)
 
     // Available Icons
     const availableIcons = [
       '🎮', '🎯', '🎲', '🎪', '🎨', 
       '🎭', '🎸', '⚽', '🍕', '🚀'
     ]
+
+    const error = ref('')
 
     // Computed
     const gamePhase = computed(() => {
@@ -296,7 +315,15 @@ export default {
       return Object.values(players.value || {}).filter(p => p.isOnline).length
     })
 
-    const error = ref('')
+    // Joker Management
+    const availableJokers = computed(() => {
+      if (!gameState.value?.jokers) return {}
+      return gameState.value.jokers
+    })
+
+    const hasAvailableJokers = computed(() => {
+      return Object.keys(availableJokers.value).length > 0
+    })
 
     // Methods
     const joinLobby = async () => {
@@ -365,33 +392,78 @@ export default {
       return 'bg-white/20 text-white border-2 border-white/30 hover:border-orange-400/50 hover:bg-white/30 cursor-pointer'
     }
 
-    const getJokerName = (jokerType) => {
+    const getJokerIcon = (jokerType) => {
+      const icons = {
+        fiftyFifty: '50/50',
+        randomPerson: '👤',
+        reveal: '🔍'
+      }
+      return icons[jokerType] || '🃏'
+    }
+
+    const getJokerShortName = (jokerType) => {
       const names = {
-        fiftyFifty: '50/50 Joker',
-        randomPerson: 'Zufällige Person',
+        fiftyFifty: '50/50',
+        randomPerson: 'Person',
         reveal: 'Aufdecken'
       }
       return names[jokerType] || jokerType
+    }
+
+    const getJokerColorClass = (jokerType) => {
+      const colors = {
+        fiftyFifty: 'bg-blue-600/20 border-blue-400/30',
+        randomPerson: 'bg-purple-600/20 border-purple-400/30',
+        reveal: 'bg-green-600/20 border-green-400/30'
+      }
+      return colors[jokerType] || 'bg-gray-600/20 border-gray-400/30'
+    }
+
+    const stopTimer = () => {
+      if (questionTimer.value) {
+        clearInterval(questionTimer.value)
+        questionTimer.value = null
+      }
     }
 
     // Watchers
     watch(() => gameState.value, (newState) => {
       if (!newState) return
       
+      console.log('🔄 Player GameState Update:', {
+        phase: newState.phase,
+        questionIndex: newState.currentQuestionIndex
+      })
+      
       // Reset vote state für neue Frage
       if (newState.phase === 'voting') {
         selectedAnswer.value = null
         hasVoted.value = false
-        timeRemaining.value = 30
         hiddenAnswers.value = []
         
+        // Timer synchronisieren mit questionStartTime
+        const startTime = newState.questionStartTime
+        if (startTime) {
+          const now = Date.now()
+          const elapsed = Math.floor((now - startTime) / 1000)
+          timeRemaining.value = Math.max(0, 30 - elapsed)
+        } else {
+          timeRemaining.value = 30
+        }
+        
         // Timer starten
-        const timer = setInterval(() => {
+        stopTimer()
+        questionTimer.value = setInterval(() => {
           timeRemaining.value--
           if (timeRemaining.value <= 0) {
-            clearInterval(timer)
+            stopTimer()
           }
         }, 1000)
+      }
+      
+      // Timer stoppen bei Results
+      if (newState.phase === 'results' || newState.phase === 'finished') {
+        stopTimer()
       }
       
       // Joker Updates
@@ -418,11 +490,16 @@ export default {
       selectedAnswer.value = null
       hasVoted.value = false
       error.value = ''
+      stopTimer()
     })
 
     onMounted(() => {
       // Random Icon als Default setzen
       selectedIcon.value = availableIcons[Math.floor(Math.random() * availableIcons.length)]
+    })
+
+    onUnmounted(() => {
+      stopTimer()
     })
 
     return {
@@ -440,10 +517,12 @@ export default {
       
       // Computed
       gamePhase, currentQuestionIndex, currentQuestion, currentReward, playerCount,
+      availableJokers, hasAvailableJokers,
       
       // Methods
       joinLobby, selectAnswer, submitVote, leaveLobby,
-      isHidden, getAnswerButtonClass, getJokerName
+      isHidden, getAnswerButtonClass, 
+      getJokerIcon, getJokerShortName, getJokerColorClass
     }
   }
 }
