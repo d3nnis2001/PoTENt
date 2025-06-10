@@ -88,6 +88,37 @@
         </div>
       </div>
 
+      <!-- Event Phase -->
+      <div v-else-if="gamePhase === 'event'" class="text-center py-12">
+        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 mb-6">
+          <div class="text-6xl mb-4">🎭</div>
+          <h2 class="text-2xl font-bold text-white mb-4">Event läuft</h2>
+          <div v-if="currentEventQuestion" class="text-white mb-4">
+            <p class="text-lg font-medium">{{ currentEventQuestion.question }}</p>
+            <p class="text-orange-200 text-sm mt-2">{{ currentEventQuestion.description }}</p>
+          </div>
+          <p v-else class="text-orange-200 text-lg">Der Moderator zeigt ein Event...</p>
+        </div>
+        
+        <div class="text-orange-200 text-sm">
+          Warte auf den Moderator...
+        </div>
+      </div>
+
+      <!-- Progress Screen Phase -->
+      <div v-else-if="gamePhase === 'progress'" class="text-center py-12">
+        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 mb-6">
+          <div class="text-6xl mb-4 animate-pulse">📊</div>
+          <h2 class="text-2xl font-bold text-white mb-4">Nächste Frage</h2>
+          <div class="text-orange-300 text-xl mb-2">Frage {{ currentQuestionIndex + 1 }}/15</div>
+          <p class="text-orange-200">Bereite dich vor...</p>
+        </div>
+        
+        <div class="text-orange-200 text-sm">
+          Warte auf den Moderator...
+        </div>
+      </div>
+
       <!-- Question Phase (während des Spiels) -->
       <div v-else-if="gamePhase === 'reading' && currentQuestion" class="space-y-6">
         <!-- Question Header -->
@@ -101,29 +132,63 @@
           </div>
         </div>
 
-        <!-- Joker Display (nur anzeigen, nicht klickbar) -->
+        <!-- Jokers Display (mobile-optimiert) -->
         <div v-if="hasAvailableJokers" class="mb-4">
           <div class="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
             <h4 class="text-white font-bold mb-3 text-center text-sm">🃏 Verfügbare Joker</h4>
-            <div class="flex justify-center gap-2">
-              <div
-                v-for="(joker, type) in availableJokers"
-                :key="type"
-                :class="[
-                  'relative p-2 rounded-lg border flex flex-col items-center gap-1 min-w-[60px]',
-                  joker.used 
-                    ? 'bg-gray-600/20 border-gray-400/30 opacity-50' 
-                    : getJokerColorClass(type)
-                ]"
-              >
-                <div class="text-lg">{{ getJokerIcon(type) }}</div>
-                <span class="text-xs text-white text-center leading-tight">{{ getJokerShortName(type) }}</span>
-                
-                <!-- Durchgestrichen wenn benutzt -->
-                <div v-if="joker.used" class="absolute inset-0 flex items-center justify-center">
-                  <div class="w-full h-0.5 bg-red-500 transform rotate-45"></div>
-                  <div class="absolute w-full h-0.5 bg-red-500 transform -rotate-45"></div>
+            <div class="flex justify-center gap-3">
+              <!-- 50/50 Joker -->
+              <div class="relative flex flex-col items-center">
+                <div :class="[
+                  'p-2 rounded-lg border-2 transition-all',
+                  availableJokers.fiftyFifty?.used 
+                    ? 'bg-gray-600/30 border-gray-400/30 opacity-50' 
+                    : 'bg-blue-600/30 border-blue-400/50'
+                ]">
+                  <img :src="joker50" alt="50/50 Joker" class="w-10 h-10" />
+                  <!-- Durchstrich wenn benutzt -->
+                  <div v-if="availableJokers.fiftyFifty?.used" class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-full h-0.5 bg-red-500 transform rotate-45"></div>
+                    <div class="absolute w-full h-0.5 bg-red-500 transform -rotate-45"></div>
+                  </div>
                 </div>
+                <span class="text-xs text-white text-center mt-1">50/50</span>
+              </div>
+
+              <!-- Random Person Joker -->
+              <div class="relative flex flex-col items-center">
+                <div :class="[
+                  'p-2 rounded-lg border-2 transition-all',
+                  availableJokers.randomPerson?.used 
+                    ? 'bg-gray-600/30 border-gray-400/30 opacity-50' 
+                    : 'bg-purple-600/30 border-purple-400/50'
+                ]">
+                  <img :src="jokerrandom" alt="Random Person Joker" class="w-10 h-10" />
+                  <!-- Durchstrich wenn benutzt -->
+                  <div v-if="availableJokers.randomPerson?.used" class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-full h-0.5 bg-red-500 transform rotate-45"></div>
+                    <div class="absolute w-full h-0.5 bg-red-500 transform -rotate-45"></div>
+                  </div>
+                </div>
+                <span class="text-xs text-white text-center mt-1">Person</span>
+              </div>
+
+              <!-- Reveal Joker -->
+              <div class="relative flex flex-col items-center">
+                <div :class="[
+                  'p-2 rounded-lg border-2 transition-all',
+                  availableJokers.reveal?.used 
+                    ? 'bg-gray-600/30 border-gray-400/30 opacity-50' 
+                    : 'bg-green-600/30 border-green-400/50'
+                ]">
+                  <img :src="jokerreveal" alt="Reveal Joker" class="w-10 h-10" />
+                  <!-- Durchstrich wenn benutzt -->
+                  <div v-if="availableJokers.reveal?.used" class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-full h-0.5 bg-red-500 transform rotate-45"></div>
+                    <div class="absolute w-full h-0.5 bg-red-500 transform -rotate-45"></div>
+                  </div>
+                </div>
+                <span class="text-xs text-white text-center mt-1">Aufdecken</span>
               </div>
             </div>
           </div>
@@ -241,6 +306,9 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLobby } from '../composables/useLobby'
 import { globalToast } from '../composables/useToast'
+import joker50 from '../assets/5050.png'
+import jokerrandom from '../assets/RandomPerson.png'
+import jokerreveal from '../assets/RevealJoker.png'
 
 export default {
   name: 'HackeDichtPlayerView',
@@ -291,6 +359,8 @@ export default {
       if (gameState.value?.phase === 'voting') return 'reading'
       if (gameState.value?.phase === 'results') return 'results'
       if (gameState.value?.phase === 'finished') return 'finished'
+      if (gameState.value?.phase === 'event') return 'event'
+      if (gameState.value?.phase === 'progress') return 'progress'
       
       return 'waiting'
     })
@@ -323,6 +393,10 @@ export default {
 
     const hasAvailableJokers = computed(() => {
       return Object.keys(availableJokers.value).length > 0
+    })
+
+    const currentEventQuestion = computed(() => {
+      return gameState.value?.currentEventQuestion || null
     })
 
     // Methods
@@ -392,32 +466,6 @@ export default {
       return 'bg-white/20 text-white border-2 border-white/30 hover:border-orange-400/50 hover:bg-white/30 cursor-pointer'
     }
 
-    const getJokerIcon = (jokerType) => {
-      const icons = {
-        fiftyFifty: '50/50',
-        randomPerson: '👤',
-        reveal: '🔍'
-      }
-      return icons[jokerType] || '🃏'
-    }
-
-    const getJokerShortName = (jokerType) => {
-      const names = {
-        fiftyFifty: '50/50',
-        randomPerson: 'Person',
-        reveal: 'Aufdecken'
-      }
-      return names[jokerType] || jokerType
-    }
-
-    const getJokerColorClass = (jokerType) => {
-      const colors = {
-        fiftyFifty: 'bg-blue-600/20 border-blue-400/30',
-        randomPerson: 'bg-purple-600/20 border-purple-400/30',
-        reveal: 'bg-green-600/20 border-green-400/30'
-      }
-      return colors[jokerType] || 'bg-gray-600/20 border-gray-400/30'
-    }
 
     const stopTimer = () => {
       if (questionTimer.value) {
@@ -461,7 +509,19 @@ export default {
         }, 1000)
       }
       
-      // Timer stoppen bei Results
+      // Event Phase
+      if (newState.phase === 'event') {
+        console.log('🎭 Player: Event Phase gestartet')
+        stopTimer()
+      }
+      
+      // Progress Phase
+      if (newState.phase === 'progress') {
+        console.log('📊 Player: Progress Phase gestartet')
+        stopTimer()
+      }
+      
+      // Timer stoppen bei Results und Finished
       if (newState.phase === 'results' || newState.phase === 'finished') {
         stopTimer()
       }
@@ -517,12 +577,14 @@ export default {
       
       // Computed
       gamePhase, currentQuestionIndex, currentQuestion, currentReward, playerCount,
-      availableJokers, hasAvailableJokers,
+      availableJokers, hasAvailableJokers, currentEventQuestion,
       
       // Methods
       joinLobby, selectAnswer, submitVote, leaveLobby,
-      isHidden, getAnswerButtonClass, 
-      getJokerIcon, getJokerShortName, getJokerColorClass
+      isHidden, getAnswerButtonClass,
+      
+      // Assets
+      joker50, jokerrandom, jokerreveal
     }
   }
 }

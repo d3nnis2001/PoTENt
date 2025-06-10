@@ -43,6 +43,10 @@ export const lobbyStore = reactive({
           currentQuestionIndex: 0,
           phase: 'lobby',
           questionStartTime: null,
+          currentEventQuestion: null,
+          eventQueue: [],
+          showEventQuestion: false,
+          showProgressScreen: true,
           jokers: {
             fiftyFifty: { used: false },
             randomPerson: { used: false },
@@ -206,7 +210,8 @@ export const lobbyStore = reactive({
     if (!this.isHost || !this.currentLobby) return
     
     try {
-        const nextIndex = this.currentLobby.gameState.currentQuestionIndex + 1
+        const currentIndex = this.currentLobby.gameState.currentQuestionIndex
+        const nextIndex = currentIndex + 1
         const lobbyCode = this.currentLobby.code
         
         if (nextIndex >= 15) {
@@ -215,22 +220,40 @@ export const lobbyStore = reactive({
         updates[`lobbies/${lobbyCode}/status`] = 'finished'
         updates[`lobbies/${lobbyCode}/gameState/phase`] = 'finished'
         updates[`lobbies/${lobbyCode}/gameState/finishedAt`] = serverTimestamp()
+        updates[`lobbies/${lobbyCode}/gameState/showProgressScreen`] = false
+        updates[`lobbies/${lobbyCode}/gameState/showEventQuestion`] = false
         
         await update(dbRef(realtimeDb), updates)
         } else {
-        // Nächste Frage - ATOMIC UPDATE für Synchronisation
-        const updates = {}
-        updates[`lobbies/${lobbyCode}/gameState/currentQuestionIndex`] = nextIndex
-        updates[`lobbies/${lobbyCode}/gameState/phase`] = 'voting'
-        updates[`lobbies/${lobbyCode}/gameState/questionStartTime`] = serverTimestamp()
+        // Prüfe auf Event-Fragen für die kommende Frage
+        const gameData = this.currentLobby.gameData
+        const eventQuestions = gameData.eventQuestions?.[nextIndex] || []
         
-        // Votes für neue Frage löschen (wichtig für clean state)
-        updates[`lobbies/${lobbyCode}/votes/${nextIndex}`] = null
-        
-        // ATOMIC UPDATE - alle Änderungen gleichzeitig
-        await update(dbRef(realtimeDb), updates)
-        
-        console.log(`Frage ${nextIndex} gestartet`)
+        if (eventQuestions.length > 0) {
+            // Event-Fragen für nächste Frage gefunden
+            const updates = {}
+            updates[`lobbies/${lobbyCode}/gameState/currentQuestionIndex`] = nextIndex
+            updates[`lobbies/${lobbyCode}/gameState/phase`] = 'event'
+            updates[`lobbies/${lobbyCode}/gameState/currentEventQuestion`] = eventQuestions[0]
+            updates[`lobbies/${lobbyCode}/gameState/eventQueue`] = eventQuestions.slice(1)
+            updates[`lobbies/${lobbyCode}/gameState/showEventQuestion`] = true
+            updates[`lobbies/${lobbyCode}/gameState/showProgressScreen`] = false
+            
+            await update(dbRef(realtimeDb), updates)
+            console.log(`Event-Fragen für Frage ${nextIndex} gestartet`)
+        } else {
+            // Direkt zur nächsten Frage (Progress Screen)
+            const updates = {}
+            updates[`lobbies/${lobbyCode}/gameState/currentQuestionIndex`] = nextIndex
+            updates[`lobbies/${lobbyCode}/gameState/phase`] = 'progress'
+            updates[`lobbies/${lobbyCode}/gameState/showProgressScreen`] = true
+            updates[`lobbies/${lobbyCode}/gameState/showEventQuestion`] = false
+            updates[`lobbies/${lobbyCode}/gameState/currentEventQuestion`] = null
+            updates[`lobbies/${lobbyCode}/gameState/eventQueue`] = []
+            
+            await update(dbRef(realtimeDb), updates)
+            console.log(`Progress Screen für Frage ${nextIndex} gestartet`)
+        }
         }
     } catch (error) {
         console.error('Fehler bei nächster Frage:', error)
@@ -250,6 +273,66 @@ export const lobbyStore = reactive({
     }
   },
   
+  // Event fortsetzen (nur Host)
+  async continueEvent() {
+    if (!this.isHost || !this.currentLobby) return
+    
+    try {
+      const lobbyCode = this.currentLobby.code
+      const eventQueue = this.currentLobby.gameState.eventQueue || []
+      
+      if (eventQueue.length > 0) {
+        // Nächstes Event aus der Queue
+        const nextEvent = eventQueue[0]
+        const remainingQueue = eventQueue.slice(1)
+        
+        const updates = {}
+        updates[`lobbies/${lobbyCode}/gameState/currentEventQuestion`] = nextEvent
+        updates[`lobbies/${lobbyCode}/gameState/eventQueue`] = remainingQueue
+        
+        await update(dbRef(realtimeDb), updates)
+        console.log('Nächstes Event gestartet')
+      } else {
+        // Keine Events mehr - zur Progress Screen wechseln
+        const updates = {}
+        updates[`lobbies/${lobbyCode}/gameState/phase`] = 'progress'
+        updates[`lobbies/${lobbyCode}/gameState/showEventQuestion`] = false
+        updates[`lobbies/${lobbyCode}/gameState/showProgressScreen`] = true
+        updates[`lobbies/${lobbyCode}/gameState/currentEventQuestion`] = null
+        
+        await update(dbRef(realtimeDb), updates)
+        console.log('Events beendet - Progress Screen gestartet')
+      }
+    } catch (error) {
+      console.error('Fehler beim Event fortsetzen:', error)
+      throw error
+    }
+  },
+
+  // Progress Screen fortsetzen (nur Host)
+  async continueFromProgress() {
+    if (!this.isHost || !this.currentLobby) return
+    
+    try {
+      const lobbyCode = this.currentLobby.code
+      const updates = {}
+      
+      updates[`lobbies/${lobbyCode}/gameState/phase`] = 'voting'
+      updates[`lobbies/${lobbyCode}/gameState/showProgressScreen`] = false
+      updates[`lobbies/${lobbyCode}/gameState/questionStartTime`] = serverTimestamp()
+      
+      // Votes für aktuelle Frage löschen
+      const currentIndex = this.currentLobby.gameState.currentQuestionIndex
+      updates[`lobbies/${lobbyCode}/votes/${currentIndex}`] = null
+      
+      await update(dbRef(realtimeDb), updates)
+      console.log('Von Progress Screen zur Voting Phase gewechselt')
+    } catch (error) {
+      console.error('Fehler beim Progress fortsetzen:', error)
+      throw error
+    }
+  },
+
   // Joker aktivieren (nur Host)
   async activateJoker(jokerType) {
     if (!this.isHost || !this.currentLobby) return

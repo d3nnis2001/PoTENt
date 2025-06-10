@@ -98,6 +98,50 @@ export function useLobby() {
       throw err
     }
   }
+
+  // Nächste Frage (nur Host)
+  const nextQuestion = async () => {
+    try {
+      error.value = ''
+      await lobbyStore.nextQuestion()
+    } catch (err) {
+      error.value = err.message
+      throw err
+    }
+  }
+
+  // Antwort zeigen (nur Host)
+  const showAnswer = async () => {
+    try {
+      error.value = ''
+      await lobbyStore.showAnswer()
+    } catch (err) {
+      error.value = err.message
+      throw err
+    }
+  }
+
+  // Event fortsetzen (nur Host)
+  const continueEvent = async () => {
+    try {
+      error.value = ''
+      await lobbyStore.continueEvent()
+    } catch (err) {
+      error.value = err.message
+      throw err
+    }
+  }
+
+  // Progress Screen fortsetzen (nur Host)
+  const continueFromProgress = async () => {
+    try {
+      error.value = ''
+      await lobbyStore.continueFromProgress()
+    } catch (err) {
+      error.value = err.message
+      throw err
+    }
+  }
   
   // Lobby verlassen
   const leaveLobby = async () => {
@@ -146,6 +190,10 @@ export function useLobby() {
     startGame,
     submitVote,
     activateJoker,
+    nextQuestion,
+    showAnswer,
+    continueEvent,
+    continueFromProgress,
     leaveLobby,
     getVoteStats,
     hasVoted,
