@@ -2,8 +2,8 @@
   <div class="min-h-screen p-4 bg-gradient-to-br from-orange-900 via-red-900 to-pink-900">
     <div class="max-w-md mx-auto">
       
-      <!-- Connection Status -->
-      <div class="text-center mb-4">
+      <!-- Connection Status (nur nach dem Beitreten anzeigen) -->
+      <div v-if="hasJoined" class="text-center mb-4">
         <div :class="[
           'inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs',
           connectionStatus === 'connected' ? 'bg-green-600/30 text-green-200' : 'bg-red-600/30 text-red-200'
@@ -17,292 +17,37 @@
       </div>
 
       <!-- Join Form (wenn noch nicht beigetreten) -->
-      <div v-if="!hasJoined" class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-        <h2 class="text-xl font-bold text-white mb-4">Lobby beitreten</h2>
-        
-        <form @submit.prevent="joinLobby" class="space-y-4">
-          <div>
-            <label class="block text-white font-medium mb-2">Dein Name</label>
-            <input
-              v-model="playerName"
-              type="text"
-              maxlength="20"
-              class="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-400"
-              placeholder="Dein Spielername"
-              required
-            />
-          </div>
-
-          <div>
-            <label class="block text-white font-medium mb-2">Wähle dein Icon</label>
-            <div class="flex items-center justify-center gap-8">
-              <!-- Previous Icon Button -->
-              <button
-                @click="prevIcon"
-                type="button"
-                class="w-16 h-16 rounded-xl bg-white/20 border border-white/30 hover:bg-white/30 transition-all flex items-center justify-center text-white font-bold text-2xl"
-              >
-                <
-              </button>
-              
-              <!-- Current Icon Display -->
-              <div class="w-48 h-48 rounded-2xl bg-orange-600/50 border-4 border-orange-400 flex items-center justify-center transition-all shadow-xl">
-                <img :src="currentIcon" alt="Character" class="w-44 h-44 object-contain" />
-              </div>
-              
-              <!-- Next Icon Button -->
-              <button
-                @click="nextIcon"
-                type="button"
-                class="w-16 h-16 rounded-xl bg-white/20 border border-white/30 hover:bg-white/30 transition-all flex items-center justify-center text-white font-bold text-2xl"
-              >
-                >
-              </button>
-            </div>
-            
-            <!-- Icon Counter -->
-            <div class="text-center mt-2">
-              <span class="text-xs text-orange-200">{{ selectedIconIndex + 1 }} / {{ availableIcons.length }}</span>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            :disabled="!playerName.trim() || isJoining"
-            class="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-orange-700 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            {{ isJoining ? 'Trete bei...' : 'Beitreten' }}
-          </button>
-        </form>
-      </div>
+      <PlayerJoinForm
+        v-if="!hasJoined"
+        :is-joining="isJoining"
+        @join="handleJoin"
+      />
 
       <!-- Waiting Screen (nach dem Beitreten, vor Spielstart) -->
-      <div v-else-if="gamePhase === 'waiting'" class="text-center">
-        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 mb-6">
-          <div class="w-20 h-20 rounded-full bg-green-600/30 flex items-center justify-center mx-auto mb-3">
-            <img v-if="currentPlayer?.icon && (currentPlayer.icon.startsWith('/') || currentPlayer.icon.includes('Character'))" 
-                 :src="currentPlayer.icon" 
-                 alt="Character" 
-                 class="w-16 h-16 object-contain" />
-            <span v-else class="text-4xl">{{ currentPlayer?.icon || '🎮' }}</span>
-          </div>
-          <h2 class="text-xl font-bold text-white mb-1">{{ currentPlayer?.name }}</h2>
-          <div class="text-green-300 text-sm">Bereit zum Spielen!</div>
-        </div>
+      <PlayerWaitingScreen
+        v-else-if="gamePhase === 'waiting'"
+        :player="currentPlayer"
+        :player-count="playerCount"
+      />
 
-        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
-          <h3 class="text-lg font-bold text-white mb-3">Warte auf Spielstart...</h3>
-          <div class="text-center">
-            <div class="text-2xl text-orange-300 mb-1">{{ playerCount }}</div>
-            <div class="text-xs text-orange-200">Spieler in der Lobby</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Event Phase -->
-      <div v-else-if="gamePhase === 'event'" class="text-center py-12">
-        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 mb-6">
-          <div class="text-6xl mb-4">🎭</div>
-          <h2 class="text-2xl font-bold text-white mb-4">Event läuft</h2>
-          <div v-if="currentEventQuestion" class="text-white mb-4">
-            <p class="text-lg font-medium">{{ currentEventQuestion.question }}</p>
-            <p class="text-orange-200 text-sm mt-2">{{ currentEventQuestion.description }}</p>
-          </div>
-          <p v-else class="text-orange-200 text-lg">Der Moderator zeigt ein Event...</p>
-        </div>
-        
-        <div class="text-orange-200 text-sm">
-          Warte auf den Moderator...
-        </div>
-      </div>
-
-      <!-- Progress Screen Phase -->
-      <div v-else-if="gamePhase === 'progress'" class="text-center py-12">
-        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 mb-6">
-          <div class="text-6xl mb-4 animate-pulse">📊</div>
-          <h2 class="text-2xl font-bold text-white mb-4">Nächste Frage</h2>
-          <div class="text-orange-300 text-xl mb-2">Frage {{ currentQuestionIndex + 1 }}/15</div>
-          <p class="text-orange-200">Bereite dich vor...</p>
-        </div>
-        
-        <div class="text-orange-200 text-sm">
-          Warte auf den Moderator...
-        </div>
-      </div>
-
-      <!-- Question Phase (während des Spiels) -->
-      <div v-else-if="gamePhase === 'reading' && currentQuestion" class="space-y-6">
-        <!-- Question Header -->
-        <div class="text-center">
-          <h2 class="text-xl font-bold text-white mb-2">Frage {{ currentQuestionIndex + 1 }}/15</h2>
-          <div v-if="timeRemaining > 0" class="text-orange-200 text-sm">
-            {{ timeRemaining }}s verbleibend
-          </div>
-          <div v-else class="text-red-300 text-sm">
-            Zeit abgelaufen!
-          </div>
-        </div>
-
-        <!-- Jokers Display (mobile-optimiert) -->
-        <div v-if="hasAvailableJokers" class="mb-4">
-          <div class="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
-            <h4 class="text-white font-bold mb-3 text-center text-sm">🃏 Verfügbare Joker</h4>
-            <div class="flex justify-center gap-3">
-              <!-- 50/50 Joker -->
-              <div class="relative flex flex-col items-center">
-                <div :class="[
-                  'p-2 rounded-lg border-2 transition-all',
-                  availableJokers.fiftyFifty?.used 
-                    ? 'bg-gray-600/30 border-gray-400/30 opacity-50' 
-                    : 'bg-blue-600/30 border-blue-400/50'
-                ]">
-                  <img :src="joker50" alt="50/50 Joker" class="w-10 h-10" />
-                  <!-- Durchstrich wenn benutzt -->
-                  <div v-if="availableJokers.fiftyFifty?.used" class="absolute inset-0 flex items-center justify-center">
-                    <div class="w-full h-0.5 bg-red-500 transform rotate-45"></div>
-                    <div class="absolute w-full h-0.5 bg-red-500 transform -rotate-45"></div>
-                  </div>
-                </div>
-                <span class="text-xs text-white text-center mt-1">50/50</span>
-              </div>
-
-              <!-- Random Person Joker -->
-              <div class="relative flex flex-col items-center">
-                <div :class="[
-                  'p-2 rounded-lg border-2 transition-all',
-                  availableJokers.randomPerson?.used 
-                    ? 'bg-gray-600/30 border-gray-400/30 opacity-50' 
-                    : 'bg-purple-600/30 border-purple-400/50'
-                ]">
-                  <img :src="jokerrandom" alt="Random Person Joker" class="w-10 h-10" />
-                  <!-- Durchstrich wenn benutzt -->
-                  <div v-if="availableJokers.randomPerson?.used" class="absolute inset-0 flex items-center justify-center">
-                    <div class="w-full h-0.5 bg-red-500 transform rotate-45"></div>
-                    <div class="absolute w-full h-0.5 bg-red-500 transform -rotate-45"></div>
-                  </div>
-                </div>
-                <span class="text-xs text-white text-center mt-1">Person</span>
-              </div>
-
-              <!-- Reveal Joker -->
-              <div class="relative flex flex-col items-center">
-                <div :class="[
-                  'p-2 rounded-lg border-2 transition-all',
-                  availableJokers.reveal?.used 
-                    ? 'bg-gray-600/30 border-gray-400/30 opacity-50' 
-                    : 'bg-green-600/30 border-green-400/50'
-                ]">
-                  <img :src="jokerreveal" alt="Reveal Joker" class="w-10 h-10" />
-                  <!-- Durchstrich wenn benutzt -->
-                  <div v-if="availableJokers.reveal?.used" class="absolute inset-0 flex items-center justify-center">
-                    <div class="w-full h-0.5 bg-red-500 transform rotate-45"></div>
-                    <div class="absolute w-full h-0.5 bg-red-500 transform -rotate-45"></div>
-                  </div>
-                </div>
-                <span class="text-xs text-white text-center mt-1">Aufdecken</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Question Text -->
-        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-          <p class="text-white text-lg leading-relaxed text-center">
-            {{ currentQuestion.question }}
-          </p>
-        </div>
-
-        <!-- Answer Buttons -->
-        <div class="space-y-3">
-          <button
-            v-for="(answer, index) in currentQuestion.answers"
-            :key="index"
-            @click="selectAnswer(index)"
-            :disabled="hasVoted || timeRemaining <= 0 || isHidden(index)"
-            :class="[
-              'w-full p-4 rounded-lg text-left transition-all flex items-center gap-3',
-              getAnswerButtonClass(index)
-            ]"
-          >
-            <span class="flex-shrink-0 w-8 h-8 rounded-full border-2 border-current flex items-center justify-center font-bold">
-              {{ String.fromCharCode(65 + index) }}
-            </span>
-            <span class="flex-1">{{ answer.text }}</span>
-            <div v-if="selectedAnswer === index && !hasVoted" class="text-blue-300 text-xl">
-              ✓
-            </div>
-          </button>
-        </div>
-
-        <!-- Submit Button -->
-        <div v-if="selectedAnswer !== null && !hasVoted" class="text-center">
-          <button
-            @click="submitVote"
-            :disabled="isSubmitting"
-            class="bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 px-8 rounded-lg font-bold text-lg hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 transition-all"
-          >
-            {{ isSubmitting ? 'Wird gesendet...' : 'Antwort bestätigen' }}
-          </button>
-        </div>
-
-        <!-- Vote Confirmed -->
-        <div v-else-if="hasVoted" class="text-center">
-          <div class="bg-green-600/20 backdrop-blur-lg rounded-xl p-6 border border-green-400/30">
-            <div class="text-6xl mb-4 animate-bounce">✓</div>
-            <h3 class="text-xl font-bold text-white mb-2">Antwort bestätigt!</h3>
-            <p class="text-green-200 mb-4">Warte auf andere Spieler...</p>
-            <div class="text-sm text-white/70">
-              Du hast {{ String.fromCharCode(65 + selectedAnswer) }} gewählt
-            </div>
-          </div>
-        </div>
-
-        <!-- Instructions -->
-        <div v-else class="text-center text-orange-200 text-sm">
-          {{ selectedAnswer !== null ? 'Du kannst deine Auswahl bis zur Bestätigung ändern' : 'Wähle deine Antwort' }}
-        </div>
-      </div>
-
-      <!-- Results Phase -->
-      <div v-else-if="gamePhase === 'results' && currentQuestion" class="text-center">
-        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 mb-6">
-          <h2 class="text-xl font-bold text-white mb-4">Auflösung</h2>
-          
-          <div class="mb-4">
-            <div class="text-green-400 text-lg font-bold mb-2">
-              Richtige Antwort: {{ String.fromCharCode(65 + currentQuestion.correctAnswer) }}
-            </div>
-            <div :class="[
-              'text-lg font-medium',
-              selectedAnswer === currentQuestion.correctAnswer ? 'text-green-400' : 'text-red-400'
-            ]">
-              {{ selectedAnswer === currentQuestion.correctAnswer ? '🎉 Richtig!' : '❌ Falsch!' }}
-            </div>
-          </div>
-
-          <div v-if="selectedAnswer !== currentQuestion.correctAnswer" class="text-orange-200 text-sm">
-            Du trinkst: {{ currentReward?.name }}! 🍻
-          </div>
-        </div>
-        
-        <div class="text-orange-200 text-sm">
-          Warte auf den Moderator...
-        </div>
-      </div>
-
-      <!-- Game Finished -->
-      <div v-else-if="gamePhase === 'finished'" class="text-center py-12">
-        <div class="text-8xl mb-6 animate-bounce">🎉</div>
-        <h2 class="text-3xl font-bold text-white mb-4">Quiz beendet!</h2>
-        <p class="text-orange-200 text-lg mb-8">Danke fürs Mitspielen!</p>
-        
-        <button
-          @click="leaveLobby"
-          class="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all"
-        >
-          Lobby verlassen
-        </button>
-      </div>
+      <!-- Game Phases -->
+      <PlayerGamePhase
+        v-else
+        :game-phase="gamePhase"
+        :current-event-question="currentEventQuestion"
+        :current-question-index="currentQuestionIndex"
+        :current-question="currentQuestion"
+        :current-reward="currentReward"
+        :time-remaining="timeRemaining"
+        :available-jokers="availableJokers"
+        :hidden-answers="hiddenAnswers"
+        :selected-answer="selectedAnswer"
+        :has-voted="hasVoted"
+        :is-submitting="isSubmitting"
+        @select-answer="selectAnswer"
+        @submit-vote="submitVote"
+        @leave-lobby="leaveLobby"
+      />
 
       <!-- Error Display -->
       <div v-if="error" class="mt-4 p-3 bg-red-600/20 border border-red-400/30 rounded-lg">
@@ -317,9 +62,11 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLobby } from '../composables/useLobby'
 import { globalToast } from '../composables/useToast'
-import joker50 from '../assets/5050.png'
-import jokerrandom from '../assets/RandomPerson.png'
-import jokerreveal from '../assets/RevealJoker.png'
+
+// Components
+import PlayerJoinForm from '../components/hacke-dicht-mobile/PlayerJoinForm.vue'
+import PlayerWaitingScreen from '../components/hacke-dicht-mobile/PlayerWaitingScreen.vue'
+import PlayerGamePhase from '../components/hacke-dicht-mobile/PlayerGamePhase.vue'
 
 // Dynamic import of character images
 const importCharacterImages = () => {
@@ -344,6 +91,11 @@ const characterImages = importCharacterImages()
 
 export default {
   name: 'HackeDichtPlayerView',
+  components: {
+    PlayerJoinForm,
+    PlayerWaitingScreen,
+    PlayerGamePhase
+  },
   props: {
     lobbyCode: {
       type: String,
@@ -361,8 +113,6 @@ export default {
 
     // Join State
     const hasJoined = ref(false)
-    const playerName = ref('')
-    const selectedIconIndex = ref(0)
     const isJoining = ref(false)
 
     // Game State
@@ -373,23 +123,6 @@ export default {
     const hiddenAnswers = ref([])
     const activeJokers = ref([])
     const questionTimer = ref(null)
-
-    // Available Character Icons
-    const availableIcons = characterImages
-    
-    const currentIcon = computed(() => {
-      return availableIcons[selectedIconIndex.value] || availableIcons[0]
-    })
-    
-    const nextIcon = () => {
-      selectedIconIndex.value = (selectedIconIndex.value + 1) % availableIcons.length
-    }
-    
-    const prevIcon = () => {
-      selectedIconIndex.value = selectedIconIndex.value === 0 
-        ? availableIcons.length - 1 
-        : selectedIconIndex.value - 1
-    }
 
     const error = ref('')
 
@@ -431,11 +164,8 @@ export default {
     // Joker Management
     const availableJokers = computed(() => {
       if (!gameState.value?.jokers) return {}
+      console.log('🃏 Player availableJokers:', gameState.value.jokers)
       return gameState.value.jokers
-    })
-
-    const hasAvailableJokers = computed(() => {
-      return Object.keys(availableJokers.value).length > 0
     })
 
     const currentEventQuestion = computed(() => {
@@ -443,14 +173,13 @@ export default {
     })
 
     // Methods
-    const joinLobby = async () => {
-      if (!playerName.value.trim()) return
-      
+    const handleJoin = async (joinData) => {
       isJoining.value = true
       error.value = ''
       
       try {
-        await joinLobbyAction(props.lobbyCode, playerName.value.trim(), currentIcon.value)
+        const iconUrl = characterImages[joinData.iconIndex] || characterImages[0]
+        await joinLobbyAction(props.lobbyCode, joinData.name, iconUrl)
         hasJoined.value = true
         success('Lobby beigetreten!')
       } catch (err) {
@@ -461,7 +190,7 @@ export default {
     }
 
     const selectAnswer = (answerIndex) => {
-      if (hasVoted.value || timeRemaining.value <= 0 || isHidden(answerIndex)) return
+      if (hasVoted.value || timeRemaining.value <= 0 || hiddenAnswers.value.includes(answerIndex)) return
       selectedAnswer.value = answerIndex
     }
 
@@ -488,27 +217,6 @@ export default {
         router.push('/')
       }
     }
-
-    const isHidden = (answerIndex) => {
-      return hiddenAnswers.value.includes(answerIndex)
-    }
-
-    const getAnswerButtonClass = (index) => {
-      if (isHidden(index)) {
-        return 'bg-white/5 text-white/30 border-2 border-white/10 opacity-30 cursor-not-allowed'
-      }
-      
-      if (selectedAnswer.value === index && !hasVoted.value) {
-        return 'bg-blue-600/50 text-white border-2 border-blue-400 shadow-lg'
-      }
-      
-      if (hasVoted.value || timeRemaining.value <= 0) {
-        return 'bg-white/10 text-white/50 border-2 border-white/20 cursor-not-allowed'
-      }
-      
-      return 'bg-white/20 text-white border-2 border-white/30 hover:border-orange-400/50 hover:bg-white/30 cursor-pointer'
-    }
-
 
     const stopTimer = () => {
       if (questionTimer.value) {
@@ -596,11 +304,6 @@ export default {
       stopTimer()
     })
 
-    onMounted(() => {
-      // Random Icon als Default setzen
-      selectedIconIndex.value = Math.floor(Math.random() * availableIcons.length)
-    })
-
     onUnmounted(() => {
       stopTimer()
     })
@@ -610,27 +313,19 @@ export default {
       lobbyCode: props.lobbyCode,
       
       // State
-      hasJoined, playerName, selectedIconIndex, isJoining,
+      hasJoined, isJoining,
       selectedAnswer, hasVoted, isSubmitting, timeRemaining,
       hiddenAnswers, activeJokers, error,
-      availableIcons, currentIcon,
-      
-      // Icon Navigation
-      nextIcon, prevIcon,
       
       // Lobby State
       currentLobby, currentPlayer, players, connectionStatus,
       
       // Computed
       gamePhase, currentQuestionIndex, currentQuestion, currentReward, playerCount,
-      availableJokers, hasAvailableJokers, currentEventQuestion,
+      availableJokers, currentEventQuestion,
       
       // Methods
-      joinLobby, selectAnswer, submitVote, leaveLobby,
-      isHidden, getAnswerButtonClass,
-      
-      // Assets
-      joker50, jokerrandom, jokerreveal
+      handleJoin, selectAnswer, submitVote, leaveLobby
     }
   }
 }

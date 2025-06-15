@@ -20,168 +20,25 @@
       <GameNotFoundView v-else-if="!game" />
 
       <!-- Lobby Setup (vor Spielstart) -->
-      <div v-else-if="!currentLobby" class="max-w-md mx-auto">
-        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 mb-6">
-          <h2 class="text-xl font-bold text-white mb-4">Multiplayer-Lobby erstellen</h2>
-          
-          <div class="space-y-4">
-            <div>
-              <label class="block text-white font-medium mb-2">Dein Name (Host)</label>
-              <input
-                v-model="hostName"
-                type="text"
-                maxlength="20"
-                class="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                placeholder="Dein Moderator-Name"
-                required
-              />
-            </div>
-
-            <button
-              @click="createLobby"
-              :disabled="!hostName.trim() || isCreatingLobby || !game"
-              class="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-orange-700 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-            >
-              <svg v-if="isCreatingLobby" class="animate-spin w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-              </svg>
-              {{ isCreatingLobby ? 'Erstelle Lobby...' : !game ? 'Lade Spiel...' : 'Multiplayer starten' }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Game Info Card -->
-        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
-          <h3 class="text-lg font-bold text-white mb-3">Quiz-Info</h3>
-          <div class="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <div class="text-2xl text-orange-300 mb-1">15</div>
-              <div class="text-xs text-orange-200">Fragen</div>
-            </div>
-            <div>
-              <div class="text-2xl text-red-300 mb-1">30</div>
-              <div class="text-xs text-red-200">Sekunden</div>
-            </div>
-            <div>
-              <div class="text-2xl text-purple-300 mb-1">3</div>
-              <div class="text-xs text-purple-200">Joker</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <LobbySetupForm
+        v-if="!currentLobby"
+        :is-creating-lobby="isCreatingLobby"
+        :game-loaded="!!game"
+        @create-lobby="createLobby"
+      />
 
       <!-- Warten auf Spieler (nach Lobby-Erstellung) -->
-      <div v-else-if="currentLobby && currentLobby.status === 'waiting'" class="max-w-4xl mx-auto">
-        <h2 class="text-2xl font-bold text-white mb-6 text-center">Multiplayer Lobby</h2>
-        
-        <!-- QR Code mit Spielern links und rechts -->
-        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-8 border border-white/20 mb-8">
-          <h3 class="text-lg font-bold text-white mb-6 text-center">📱 Handy beitreten</h3>
-          
-          <div class="flex items-center justify-center gap-8">
-            <!-- Spieler links -->
-            <div class="flex-1 max-w-xs">
-              <div class="text-center mb-4">
-                <h4 class="text-white font-bold text-sm mb-3">Spieler: {{ realPlayerCount }}</h4>
-              </div>
-              
-              <div class="grid grid-cols-2 gap-2">
-                <div 
-                  v-for="(player, index) in (realPlayerList || []).slice(0, Math.ceil((realPlayerList || []).length / 2))" 
-                  :key="player.id"
-                  class="flex flex-col items-center p-2 bg-white/10 rounded-lg border border-white/20 hover:bg-white/20 transition-all"
-                >
-                  <div class="w-8 h-8 mb-1 flex items-center justify-center">
-                    <img v-if="player.icon && player.icon.startsWith('/') || player.icon && player.icon.includes('Character')" 
-                         :src="player.icon" 
-                         alt="Character" 
-                         class="w-full h-full object-contain" />
-                    <span v-else class="text-xl">{{ player.icon || '🎮' }}</span>
-                  </div>
-                  <div class="text-xs text-white text-center truncate w-full" :title="player.name">
-                    {{ player.name }}
-                  </div>
-                </div>
-              </div>
-              
-              <div v-if="realPlayerCount === 0" class="text-center py-4">
-                <div class="text-2xl mb-1">👥</div>
-                <p class="text-orange-200 text-xs">Warte auf Spieler...</p>
-              </div>
-            </div>
-            
-            <!-- QR Code mittig -->
-            <div class="flex-shrink-0 text-center">
-              <!-- QR Code -->
-              <div class="bg-white p-4 rounded-lg mb-4 inline-block">
-                <canvas ref="qrCanvas" class="max-w-full"></canvas>
-              </div>
-              
-              <!-- Lobby Code klein darunter -->
-              <div class="text-2xl font-bold text-orange-300 tracking-wider mb-3">{{ currentLobby.code }}</div>
-              <button
-                @click="copyLobbyCode"
-                class="bg-orange-600/30 text-orange-200 px-4 py-2 rounded-lg hover:bg-orange-600/50 transition-colors text-sm mb-4"
-              >
-                Code kopieren
-              </button>
-              
-              <!-- Join Link -->
-              <div class="mt-4">
-                <div class="text-sm text-orange-200 mb-2">Link:</div>
-                <div class="bg-black/30 rounded-lg p-3 text-white text-sm break-all mb-2 max-w-xs">
-                  {{ joinUrl }}
-                </div>
-                <button
-                  @click="copyJoinUrl"
-                  class="text-xs bg-blue-600/30 text-blue-200 px-3 py-1 rounded hover:bg-blue-600/50 transition-colors"
-                >
-                  Link kopieren
-                </button>
-              </div>
-            </div>
-            
-            <!-- Spieler rechts -->
-            <div class="flex-1 max-w-xs">
-              <div class="text-center mb-4">
-                <h4 class="text-white font-bold text-sm mb-3">&nbsp;</h4>
-              </div>
-              
-              <div class="grid grid-cols-2 gap-2">
-                <div 
-                  v-for="(player, index) in (realPlayerList || []).slice(Math.ceil((realPlayerList || []).length / 2))" 
-                  :key="player.id"
-                  class="flex flex-col items-center p-2 bg-white/10 rounded-lg border border-white/20 hover:bg-white/20 transition-all"
-                >
-                  <div class="w-8 h-8 mb-1 flex items-center justify-center">
-                    <img v-if="player.icon && player.icon.startsWith('/') || player.icon && player.icon.includes('Character')" 
-                         :src="player.icon" 
-                         alt="Character" 
-                         class="w-full h-full object-contain" />
-                    <span v-else class="text-xl">{{ player.icon || '🎮' }}</span>
-                  </div>
-                  <div class="text-xs text-white text-center truncate w-full" :title="player.name">
-                    {{ player.name }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Start Button -->
-        <div class="text-center">
-          <button
-            v-if="realPlayerCount >= 1"
-            @click="startGame"
-            :disabled="isStartingGame"
-            class="bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 px-8 rounded-xl font-bold text-lg hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 transition-all"
-          >
-            {{ isStartingGame ? 'Starte Spiel...' : 'Spiel starten' }}
-          </button>
-          <p v-else class="text-orange-200 text-sm mt-4">Mindestens 1 Spieler wird benötigt</p>
-        </div>
-      </div>
+      <LobbyWaitingArea
+        v-else-if="currentLobby && currentLobby.status === 'waiting'"
+        :lobby-code="currentLobby.code"
+        :join-url="joinUrl"
+        :player-list="realPlayerList || []"
+        :player-count="realPlayerCount"
+        :is-starting-game="isStartingGame"
+        @copy-lobby-code="copyLobbyCode"
+        @copy-join-url="copyJoinUrl"
+        @start-game="startGame"
+      />
 
       <!-- Progress Screen (wie Single-Player) -->
       <ProgressScreen 
@@ -276,7 +133,6 @@ import { useLobby } from '../composables/useLobby'
 import { hackeDichtStore } from '../store/hackeDichtStore'
 import { useAudio } from '../composables/useAudio'
 import { globalToast } from '../composables/useToast'
-import QRCode from 'qrcode'
 
 // Import Komponenten
 import GameHeader from '../components/hacke-dicht/GameHeader.vue'
@@ -293,6 +149,8 @@ import JokersPanel from '../components/hacke-dicht/JokersPanel.vue'
 import QuestionCard from '../components/hacke-dicht-multiplayer/QuestionCard.vue'
 import QuestionHeader from '../components/hacke-dicht-multiplayer/QuestionHeader.vue'
 import AnswerFeedback from '../components/hacke-dicht-multiplayer/AnswerFeedback.vue'
+import LobbySetupForm from '../components/hacke-dicht-multiplayer/LobbySetupForm.vue'
+import LobbyWaitingArea from '../components/hacke-dicht-multiplayer/LobbyWaitingArea.vue'
 
 export default {
   name: 'HackeDichtPlayMultiplayer',
@@ -308,7 +166,9 @@ export default {
     JokersPanel,
     QuestionCard,
     QuestionHeader,
-    AnswerFeedback
+    AnswerFeedback,
+    LobbySetupForm,
+    LobbyWaitingArea
   },
   props: {
     gameId: {
@@ -345,7 +205,6 @@ export default {
     const eventQueue = ref([])
 
     // Lobby Setup State
-    const hostName = ref('Moderator')
     const isCreatingLobby = ref(false)
     const isStartingGame = ref(false)
 
@@ -471,32 +330,11 @@ export default {
       }
     }
 
-    // QR Code & UI State
-    const qrCanvas = ref(null)
-    
     // Computed für Join URL
     const joinUrl = computed(() => {
       if (!currentLobby.value) return ''
       return `${window.location.origin}/#/play-mobile/${currentLobby.value.code}`
     })
-
-    // QR Code Methods
-    const generateQRCode = async () => {
-      if (!qrCanvas.value || !joinUrl.value) return
-      
-      try {
-        await QRCode.toCanvas(qrCanvas.value, joinUrl.value, {
-          width: 200,
-          margin: 2,
-          color: {
-            dark: '#000000',
-            light: '#FFFFFF'
-          }
-        })
-      } catch (error) {
-        console.error('QR Code Fehler:', error)
-      }
-    }
 
     // Copy Methods
     const copyLobbyCode = async () => {
@@ -520,15 +358,15 @@ export default {
     }
 
     // Lobby Methods
-    const createLobby = async () => {
-      if (!hostName.value.trim() || !game.value) {
+    const createLobby = async (hostName) => {
+      if (!hostName.trim() || !game.value) {
         showError('Spiel wird noch geladen...')
         return
       }
       
       isCreatingLobby.value = true
       try {
-        await createLobbyAction(props.gameId, hostName.value.trim(), game.value)
+        await createLobbyAction(props.gameId, hostName.trim(), game.value)
         success(`Lobby ${currentLobby.value.code} erstellt!`)
       } catch (error) {
         showError('Fehler beim Erstellen der Lobby: ' + error.message)
@@ -811,17 +649,45 @@ export default {
       }
     }, { deep: true })
 
+    // Keyboard Handler
+    const handleKeyPress = (event) => {
+      // Nur für Host
+      if (!currentPlayer.value?.isHost) return
+      
+      // Rechte Pfeiltaste
+      if (event.key === 'ArrowRight') {
+        event.preventDefault()
+        
+        // Progress Screen: Weiter zur Frage
+        if (showProgressScreen.value) {
+          continueFromProgress()
+        }
+        // Event Question: Weiter nach Event
+        else if (showEventQuestion.value) {
+          continueAfterEvent()
+        }
+        // Showing Answer: Nächste Frage
+        else if (gamePhase.value === 'showing_answer') {
+          nextQuestion()
+        }
+        // Reading Phase: Antwort aufdecken (nur wenn alle abgestimmt haben oder Zeit abgelaufen)
+        else if (gamePhase.value === 'reading') {
+          // Prüfen ob alle Spieler abgestimmt haben oder Zeit abgelaufen ist
+          if (allPlayersVoted.value || timeRemaining.value <= 0) {
+            showAnswer()
+          } else {
+            console.log('⏳ Warte auf alle Spieler oder bis Zeit abläuft')
+          }
+        }
+      }
+    }
+
     onMounted(() => {
       initializeGame()
+      window.addEventListener('keydown', handleKeyPress)
     })
 
-    // QR Code Watcher - generiert QR Code wenn Lobby erstellt wird
-    watch(() => currentLobby.value, async (newLobby) => {
-      if (newLobby && newLobby.status === 'waiting') {
-        await nextTick()
-        generateQRCode()
-      }
-    }, { immediate: true })
+    // QR Code generation is now handled by QRCodeSection component
 
     // Auto-reveal when all players voted
     watch(() => allPlayersVoted.value, (newValue) => {
@@ -843,20 +709,21 @@ export default {
     onUnmounted(() => {
       stopAudio()
       stopQuestionTimer()
+      window.removeEventListener('keydown', handleKeyPress)
     })
 
     return {
       // State
       isLoading, game, currentLobby, currentPlayer, players, connectionStatus,
-      hostName, isCreatingLobby, isStartingGame,
+      isCreatingLobby, isStartingGame,
       currentQuestion, currentQuestionIndex, gamePhase,
       showResults, showEventQuestion, showProgressScreen,
       currentEventQuestion, currentReward, isLastQuestion,
       jokers, hiddenAnswers, jokerMessage,
       timeRemaining,
       
-      // QR Code
-      qrCanvas, joinUrl,
+      // Join URL
+      joinUrl,
       
       // Audio
       isAudioEnabled, isPlaying,
