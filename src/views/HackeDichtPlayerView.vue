@@ -16,12 +16,6 @@
         </div>
       </div>
 
-      <!-- Lobby Code -->
-      <div class="text-center mb-6">
-        <h1 class="text-2xl font-bold text-white mb-1">Quiz Lobby</h1>
-        <div class="text-lg text-orange-200">{{ lobbyCode }}</div>
-      </div>
-
       <!-- Join Form (wenn noch nicht beigetreten) -->
       <div v-if="!hasJoined" class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
         <h2 class="text-xl font-bold text-white mb-4">Lobby beitreten</h2>
@@ -41,21 +35,34 @@
 
           <div>
             <label class="block text-white font-medium mb-2">Wähle dein Icon</label>
-            <div class="grid grid-cols-5 gap-2">
+            <div class="flex items-center justify-center gap-8">
+              <!-- Previous Icon Button -->
               <button
-                v-for="icon in availableIcons"
-                :key="icon"
-                @click="selectedIcon = icon"
+                @click="prevIcon"
                 type="button"
-                :class="[
-                  'w-12 h-12 rounded-lg flex items-center justify-center text-2xl transition-all border-2',
-                  selectedIcon === icon 
-                    ? 'bg-orange-600/50 border-orange-400' 
-                    : 'bg-white/10 border-white/20 hover:bg-white/20'
-                ]"
+                class="w-16 h-16 rounded-xl bg-white/20 border border-white/30 hover:bg-white/30 transition-all flex items-center justify-center text-white font-bold text-2xl"
               >
-                {{ icon }}
+                <
               </button>
+              
+              <!-- Current Icon Display -->
+              <div class="w-48 h-48 rounded-2xl bg-orange-600/50 border-4 border-orange-400 flex items-center justify-center transition-all shadow-xl">
+                <img :src="currentIcon" alt="Character" class="w-44 h-44 object-contain" />
+              </div>
+              
+              <!-- Next Icon Button -->
+              <button
+                @click="nextIcon"
+                type="button"
+                class="w-16 h-16 rounded-xl bg-white/20 border border-white/30 hover:bg-white/30 transition-all flex items-center justify-center text-white font-bold text-2xl"
+              >
+                >
+              </button>
+            </div>
+            
+            <!-- Icon Counter -->
+            <div class="text-center mt-2">
+              <span class="text-xs text-orange-200">{{ selectedIconIndex + 1 }} / {{ availableIcons.length }}</span>
             </div>
           </div>
 
@@ -72,8 +79,12 @@
       <!-- Waiting Screen (nach dem Beitreten, vor Spielstart) -->
       <div v-else-if="gamePhase === 'waiting'" class="text-center">
         <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 mb-6">
-          <div class="w-20 h-20 rounded-full bg-green-600/30 flex items-center justify-center text-4xl mx-auto mb-3">
-            {{ currentPlayer?.icon || '🎮' }}
+          <div class="w-20 h-20 rounded-full bg-green-600/30 flex items-center justify-center mx-auto mb-3">
+            <img v-if="currentPlayer?.icon && (currentPlayer.icon.startsWith('/') || currentPlayer.icon.includes('Character'))" 
+                 :src="currentPlayer.icon" 
+                 alt="Character" 
+                 class="w-16 h-16 object-contain" />
+            <span v-else class="text-4xl">{{ currentPlayer?.icon || '🎮' }}</span>
           </div>
           <h2 class="text-xl font-bold text-white mb-1">{{ currentPlayer?.name }}</h2>
           <div class="text-green-300 text-sm">Bereit zum Spielen!</div>
@@ -310,6 +321,27 @@ import joker50 from '../assets/5050.png'
 import jokerrandom from '../assets/RandomPerson.png'
 import jokerreveal from '../assets/RevealJoker.png'
 
+// Dynamic import of character images
+const importCharacterImages = () => {
+  const images = []
+  const modules = import.meta.glob('../assets/character/Character*.png', { eager: true })
+  
+  // Sort by character number
+  const sortedKeys = Object.keys(modules).sort((a, b) => {
+    const numA = parseInt(a.match(/Character(\d+)\.png$/)?.[1] || '0')
+    const numB = parseInt(b.match(/Character(\d+)\.png$/)?.[1] || '0')
+    return numA - numB
+  })
+  
+  sortedKeys.forEach(key => {
+    images.push(modules[key].default)
+  })
+  
+  return images
+}
+
+const characterImages = importCharacterImages()
+
 export default {
   name: 'HackeDichtPlayerView',
   props: {
@@ -330,7 +362,7 @@ export default {
     // Join State
     const hasJoined = ref(false)
     const playerName = ref('')
-    const selectedIcon = ref('🎮')
+    const selectedIconIndex = ref(0)
     const isJoining = ref(false)
 
     // Game State
@@ -342,11 +374,22 @@ export default {
     const activeJokers = ref([])
     const questionTimer = ref(null)
 
-    // Available Icons
-    const availableIcons = [
-      '🎮', '🎯', '🎲', '🎪', '🎨', 
-      '🎭', '🎸', '⚽', '🍕', '🚀'
-    ]
+    // Available Character Icons
+    const availableIcons = characterImages
+    
+    const currentIcon = computed(() => {
+      return availableIcons[selectedIconIndex.value] || availableIcons[0]
+    })
+    
+    const nextIcon = () => {
+      selectedIconIndex.value = (selectedIconIndex.value + 1) % availableIcons.length
+    }
+    
+    const prevIcon = () => {
+      selectedIconIndex.value = selectedIconIndex.value === 0 
+        ? availableIcons.length - 1 
+        : selectedIconIndex.value - 1
+    }
 
     const error = ref('')
 
@@ -407,7 +450,7 @@ export default {
       error.value = ''
       
       try {
-        await joinLobbyAction(props.lobbyCode, playerName.value.trim(), selectedIcon.value)
+        await joinLobbyAction(props.lobbyCode, playerName.value.trim(), currentIcon.value)
         hasJoined.value = true
         success('Lobby beigetreten!')
       } catch (err) {
@@ -555,7 +598,7 @@ export default {
 
     onMounted(() => {
       // Random Icon als Default setzen
-      selectedIcon.value = availableIcons[Math.floor(Math.random() * availableIcons.length)]
+      selectedIconIndex.value = Math.floor(Math.random() * availableIcons.length)
     })
 
     onUnmounted(() => {
@@ -567,10 +610,13 @@ export default {
       lobbyCode: props.lobbyCode,
       
       // State
-      hasJoined, playerName, selectedIcon, isJoining,
+      hasJoined, playerName, selectedIconIndex, isJoining,
       selectedAnswer, hasVoted, isSubmitting, timeRemaining,
       hiddenAnswers, activeJokers, error,
-      availableIcons,
+      availableIcons, currentIcon,
+      
+      // Icon Navigation
+      nextIcon, prevIcon,
       
       // Lobby State
       currentLobby, currentPlayer, players, connectionStatus,

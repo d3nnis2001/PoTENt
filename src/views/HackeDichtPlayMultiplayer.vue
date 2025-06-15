@@ -74,80 +74,112 @@
       <div v-else-if="currentLobby && currentLobby.status === 'waiting'" class="max-w-4xl mx-auto">
         <h2 class="text-2xl font-bold text-white mb-6 text-center">Multiplayer Lobby</h2>
         
-        <div class="grid md:grid-cols-2 gap-8">
-          <!-- QR Code & Join Info -->
-          <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 text-center">
-            <h3 class="text-lg font-bold text-white mb-4">📱 Handy beitreten</h3>
-            
-            <!-- QR Code -->
-            <div class="bg-white p-4 rounded-lg mb-4 inline-block">
-              <canvas ref="qrCanvas" class="max-w-full"></canvas>
-            </div>
-            
-            <!-- Join Link -->
-            <div class="mb-4">
-              <div class="text-sm text-orange-200 mb-2">Link:</div>
-              <div class="bg-black/30 rounded-lg p-3 text-white text-sm break-all">
-                {{ joinUrl }}
+        <!-- QR Code mit Spielern links und rechts -->
+        <div class="bg-white/10 backdrop-blur-lg rounded-xl p-8 border border-white/20 mb-8">
+          <h3 class="text-lg font-bold text-white mb-6 text-center">📱 Handy beitreten</h3>
+          
+          <div class="flex items-center justify-center gap-8">
+            <!-- Spieler links -->
+            <div class="flex-1 max-w-xs">
+              <div class="text-center mb-4">
+                <h4 class="text-white font-bold text-sm mb-3">Spieler: {{ realPlayerCount }}</h4>
               </div>
-              <button
-                @click="copyJoinUrl"
-                class="mt-2 text-xs bg-blue-600/30 text-blue-200 px-3 py-1 rounded hover:bg-blue-600/50 transition-colors"
-              >
-                Link kopieren
-              </button>
+              
+              <div class="grid grid-cols-2 gap-2">
+                <div 
+                  v-for="(player, index) in (realPlayerList || []).slice(0, Math.ceil((realPlayerList || []).length / 2))" 
+                  :key="player.id"
+                  class="flex flex-col items-center p-2 bg-white/10 rounded-lg border border-white/20 hover:bg-white/20 transition-all"
+                >
+                  <div class="w-8 h-8 mb-1 flex items-center justify-center">
+                    <img v-if="player.icon && player.icon.startsWith('/') || player.icon && player.icon.includes('Character')" 
+                         :src="player.icon" 
+                         alt="Character" 
+                         class="w-full h-full object-contain" />
+                    <span v-else class="text-xl">{{ player.icon || '🎮' }}</span>
+                  </div>
+                  <div class="text-xs text-white text-center truncate w-full" :title="player.name">
+                    {{ player.name }}
+                  </div>
+                </div>
+              </div>
+              
+              <div v-if="realPlayerCount === 0" class="text-center py-4">
+                <div class="text-2xl mb-1">👥</div>
+                <p class="text-orange-200 text-xs">Warte auf Spieler...</p>
+              </div>
             </div>
-          </div>
-
-          <!-- Lobby Code & Info -->
-          <div class="space-y-4">
-            <!-- Großer Lobby Code -->
-            <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 text-center">
-              <h3 class="text-lg font-bold text-white mb-3">🎯 Lobby Code</h3>
-              <div class="text-6xl font-bold text-orange-300 tracking-wider mb-3">{{ currentLobby.code }}</div>
+            
+            <!-- QR Code mittig -->
+            <div class="flex-shrink-0 text-center">
+              <!-- QR Code -->
+              <div class="bg-white p-4 rounded-lg mb-4 inline-block">
+                <canvas ref="qrCanvas" class="max-w-full"></canvas>
+              </div>
+              
+              <!-- Lobby Code klein darunter -->
+              <div class="text-2xl font-bold text-orange-300 tracking-wider mb-3">{{ currentLobby.code }}</div>
               <button
                 @click="copyLobbyCode"
-                class="bg-orange-600/30 text-orange-200 px-4 py-2 rounded-lg hover:bg-orange-600/50 transition-colors text-sm"
+                class="bg-orange-600/30 text-orange-200 px-4 py-2 rounded-lg hover:bg-orange-600/50 transition-colors text-sm mb-4"
               >
                 Code kopieren
               </button>
+              
+              <!-- Join Link -->
+              <div class="mt-4">
+                <div class="text-sm text-orange-200 mb-2">Link:</div>
+                <div class="bg-black/30 rounded-lg p-3 text-white text-sm break-all mb-2 max-w-xs">
+                  {{ joinUrl }}
+                </div>
+                <button
+                  @click="copyJoinUrl"
+                  class="text-xs bg-blue-600/30 text-blue-200 px-3 py-1 rounded hover:bg-blue-600/50 transition-colors"
+                >
+                  Link kopieren
+                </button>
+              </div>
             </div>
-
-            <!-- Kompakte Spieler Info -->
-            <div class="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
-              <div class="flex justify-between items-center mb-3">
-                <h4 class="text-white font-bold">Spieler</h4>
-                <div class="text-2xl font-bold text-white">{{ realPlayerCount }}</div>
+            
+            <!-- Spieler rechts -->
+            <div class="flex-1 max-w-xs">
+              <div class="text-center mb-4">
+                <h4 class="text-white font-bold text-sm mb-3">&nbsp;</h4>
               </div>
               
-              <!-- Game Info kompakt -->
-              <div class="grid grid-cols-3 gap-2 text-center text-xs border-t border-white/20 pt-3">
-                <div>
-                  <div class="text-orange-300 font-bold">15</div>
-                  <div class="text-orange-200">Fragen</div>
-                </div>
-                <div>
-                  <div class="text-red-300 font-bold">30s</div>
-                  <div class="text-red-200">Zeit</div>
-                </div>
-                <div>
-                  <div class="text-purple-300 font-bold">3</div>
-                  <div class="text-purple-200">Joker</div>
+              <div class="grid grid-cols-2 gap-2">
+                <div 
+                  v-for="(player, index) in (realPlayerList || []).slice(Math.ceil((realPlayerList || []).length / 2))" 
+                  :key="player.id"
+                  class="flex flex-col items-center p-2 bg-white/10 rounded-lg border border-white/20 hover:bg-white/20 transition-all"
+                >
+                  <div class="w-8 h-8 mb-1 flex items-center justify-center">
+                    <img v-if="player.icon && player.icon.startsWith('/') || player.icon && player.icon.includes('Character')" 
+                         :src="player.icon" 
+                         alt="Character" 
+                         class="w-full h-full object-contain" />
+                    <span v-else class="text-xl">{{ player.icon || '🎮' }}</span>
+                  </div>
+                  <div class="text-xs text-white text-center truncate w-full" :title="player.name">
+                    {{ player.name }}
+                  </div>
                 </div>
               </div>
             </div>
-
-            <!-- Start Button -->
-            <button
-              v-if="realPlayerCount >= 1"
-              @click="startGame"
-              :disabled="isStartingGame"
-              class="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 px-6 rounded-xl font-bold text-lg hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 transition-all"
-            >
-              {{ isStartingGame ? 'Starte Spiel...' : 'Spiel starten' }}
-            </button>
-            <p v-else class="text-orange-200 text-sm text-center">Mindestens 1 Spieler wird benötigt</p>
           </div>
+        </div>
+        
+        <!-- Start Button -->
+        <div class="text-center">
+          <button
+            v-if="realPlayerCount >= 1"
+            @click="startGame"
+            :disabled="isStartingGame"
+            class="bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 px-8 rounded-xl font-bold text-lg hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 transition-all"
+          >
+            {{ isStartingGame ? 'Starte Spiel...' : 'Spiel starten' }}
+          </button>
+          <p v-else class="text-orange-200 text-sm mt-4">Mindestens 1 Spieler wird benötigt</p>
         </div>
       </div>
 
@@ -305,7 +337,6 @@ export default {
     // Game State
     const isLoading = ref(true)
     const game = ref(null)
-    const currentQuestionIndex = ref(0)
     const gamePhase = ref('progress')
     const showResults = ref(false)
     const showEventQuestion = ref(false)
@@ -355,8 +386,10 @@ export default {
 
     // Multiplayer Computed
     const realPlayerList = computed(() => {
-      return Object.values(players.value || {})
+      const playerList = Object.values(players.value || {})
         .filter(p => p.isOnline && !p.isModerator)
+      console.log('🎮 RealPlayerList:', playerList)
+      return playerList
     })
 
     const realPlayerCount = computed(() => realPlayerList.value.length)
@@ -789,6 +822,23 @@ export default {
         generateQRCode()
       }
     }, { immediate: true })
+
+    // Auto-reveal when all players voted
+    watch(() => allPlayersVoted.value, (newValue) => {
+      if (newValue && 
+          currentPlayer.value?.isHost && 
+          gamePhase.value === 'reading' && 
+          timeRemaining.value > 0) {
+        console.log('🎯 Alle Spieler haben abgestimmt - Timer auf 0 setzen')
+        timeRemaining.value = 0
+        
+        // Timer stoppen und nach kurzer Verzögerung aufdecken
+        stopQuestionTimer()
+        setTimeout(() => {
+          showAnswer()
+        }, 1500) // 1.5 Sekunden Verzögerung für bessere UX
+      }
+    })
 
     onUnmounted(() => {
       stopAudio()
