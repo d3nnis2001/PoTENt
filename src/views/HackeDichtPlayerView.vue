@@ -123,6 +123,7 @@ export default {
     const hiddenAnswers = ref([])
     const activeJokers = ref([])
     const questionTimer = ref(null)
+    const currentQuestionIdx = ref(-1) // Track current question index
 
     const error = ref('')
 
@@ -234,11 +235,20 @@ export default {
         questionIndex: newState.currentQuestionIndex
       })
       
-      // Reset vote state für neue Frage
+      // Reset vote state nur für wirklich neue Fragen
       if (newState.phase === 'voting') {
-        selectedAnswer.value = null
-        hasVoted.value = false
-        hiddenAnswers.value = []
+        const newQuestionIndex = newState.currentQuestionIndex
+        
+        // Nur reset wenn es eine neue Frage ist
+        if (newQuestionIndex !== currentQuestionIdx.value) {
+          console.log('🔄 Resetting vote state for NEW question:', newQuestionIndex)
+          currentQuestionIdx.value = newQuestionIndex
+          selectedAnswer.value = null
+          hasVoted.value = false
+          hiddenAnswers.value = []
+        } else {
+          console.log('🔄 Same question, keeping vote state')
+        }
         
         // Timer synchronisieren mit questionStartTime
         const startTime = newState.questionStartTime
@@ -275,6 +285,12 @@ export default {
       // Timer stoppen bei Results und Finished
       if (newState.phase === 'results' || newState.phase === 'finished') {
         stopTimer()
+        
+        // Debug für Results Phase
+        if (newState.phase === 'results') {
+          console.log('🎯 Results Phase - selectedAnswer:', selectedAnswer.value)
+          console.log('🎯 Results Phase - currentQuestion.correctAnswer:', currentQuestion.value?.correctAnswer)
+        }
       }
       
       // Joker Updates

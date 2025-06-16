@@ -1,4 +1,3 @@
-<!-- src/views/HackeDichtGallery.vue - Fixed Multiplayer Button -->
 <template>
   <div class="min-h-screen p-4">
     <div class="max-w-6xl mx-auto">

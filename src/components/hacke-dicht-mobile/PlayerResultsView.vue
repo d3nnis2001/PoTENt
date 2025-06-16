@@ -13,6 +13,11 @@
         ]">
           {{ selectedAnswer === currentQuestion.correctAnswer ? '🎉 Richtig!' : '❌ Falsch!' }}
         </div>
+        
+        <!-- Debug Info -->
+        <div class="text-xs text-gray-400 mt-2">
+          Debug: Selected={{ selectedAnswer }}, Correct={{ currentQuestion.correctAnswer }}
+        </div>
       </div>
 
       <div v-if="selectedAnswer !== currentQuestion.correctAnswer" class="text-orange-200 text-sm">
