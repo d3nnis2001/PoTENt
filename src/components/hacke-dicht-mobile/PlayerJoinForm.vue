@@ -17,11 +17,12 @@
 
       <CharacterSelector 
         v-model:selected-icon-index="selectedIconIndex"
+        :used-characters="usedCharacters"
       />
 
       <button
         type="submit"
-        :disabled="!playerName.trim() || isJoining"
+        :disabled="!playerName.trim() || isJoining || isCharacterUsed"
         class="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-orange-700 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
       >
         {{ isJoining ? 'Trete bei...' : 'Beitreten' }}
@@ -31,7 +32,7 @@
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import CharacterSelector from './CharacterSelector.vue'
 
 export default {
@@ -43,6 +44,10 @@ export default {
     isJoining: {
       type: Boolean,
       default: false
+    },
+    usedCharacters: {
+      type: Array,
+      default: () => []
     }
   },
   emits: ['join'],
@@ -50,8 +55,12 @@ export default {
     const playerName = ref('')
     const selectedIconIndex = ref(Math.floor(Math.random() * 11)) // Random start
     
+    const isCharacterUsed = computed(() => {
+      return props.usedCharacters.includes(selectedIconIndex.value)
+    })
+
     const handleSubmit = () => {
-      if (!playerName.value.trim() || props.isJoining) return
+      if (!playerName.value.trim() || props.isJoining || isCharacterUsed.value) return
       
       emit('join', {
         name: playerName.value.trim(),
@@ -62,6 +71,7 @@ export default {
     return {
       playerName,
       selectedIconIndex,
+      isCharacterUsed,
       handleSubmit
     }
   }

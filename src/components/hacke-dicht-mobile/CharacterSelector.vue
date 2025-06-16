@@ -12,8 +12,24 @@
       </button>
       
       <!-- Current Icon Display -->
-      <div class="w-48 h-48 rounded-2xl bg-orange-600/50 border-4 border-orange-400 flex items-center justify-center transition-all shadow-xl">
-        <img :src="currentIcon" alt="Character" class="w-44 h-44 object-contain" />
+      <div class="w-48 h-48 rounded-2xl bg-orange-600/50 border-4 border-orange-400 flex items-center justify-center transition-all shadow-xl relative">
+        <img 
+          :src="currentIcon" 
+          alt="Character" 
+          class="w-44 h-44 object-contain transition-all"
+          :class="{ 'opacity-50 grayscale': isCurrentCharacterUsed }" 
+        />
+        <!-- Durchstreichung -->
+        <div 
+          v-if="isCurrentCharacterUsed" 
+          class="absolute inset-0 flex items-center justify-center pointer-events-none"
+        >
+          <div class="w-full h-1 bg-red-500 rotate-45 absolute"></div>
+          <div class="w-full h-1 bg-red-500 -rotate-45 absolute"></div>
+          <div class="bg-red-600 text-white px-2 py-1 rounded-lg font-bold text-xs z-10">
+            BELEGT
+          </div>
+        </div>
       </div>
       
       <!-- Next Icon Button -->
@@ -63,6 +79,10 @@ export default {
     selectedIconIndex: {
       type: Number,
       required: true
+    },
+    usedCharacters: {
+      type: Array,
+      default: () => []
     }
   },
   emits: ['update:selectedIconIndex'],
@@ -72,7 +92,11 @@ export default {
     const currentIcon = computed(() => {
       return availableIcons[props.selectedIconIndex] || availableIcons[0]
     })
-    
+
+    const isCurrentCharacterUsed = computed(() => {
+      return props.usedCharacters.includes(props.selectedIconIndex)
+    })
+
     const nextIcon = () => {
       const newIndex = (props.selectedIconIndex + 1) % availableIcons.length
       emit('update:selectedIconIndex', newIndex)
@@ -88,6 +112,7 @@ export default {
     return {
       availableIcons,
       currentIcon,
+      isCurrentCharacterUsed,
       nextIcon,
       prevIcon
     }

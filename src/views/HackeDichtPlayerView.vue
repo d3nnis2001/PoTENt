@@ -20,6 +20,7 @@
       <PlayerJoinForm
         v-if="!hasJoined"
         :is-joining="isJoining"
+        :used-characters="usedCharacters"
         @join="handleJoin"
       />
 
@@ -173,6 +174,44 @@ export default {
       return gameState.value?.currentEventQuestion || null
     })
 
+    // Echtzeit-Updates für verwendete Characters
+    const usedCharacters = ref([])
+    let playersListener = null
+
+    const setupCharacterListener = async () => {
+      try {
+        const { ref: dbRef, onValue } = await import('firebase/database')
+        const { realtimeDb } = await import('../firebase/config')
+        
+        const playersRef = dbRef(realtimeDb, `lobbies/${props.lobbyCode}/players`)
+        
+        playersListener = onValue(playersRef, (snapshot) => {
+          const usedIndexes = []
+          
+          if (snapshot.exists()) {
+            const players = snapshot.val()
+            Object.values(players).forEach(player => {
+              if (player.isOnline && player.iconIndex !== undefined) {
+                usedIndexes.push(player.iconIndex)
+              }
+            })
+          }
+          
+          usedCharacters.value = usedIndexes
+          console.log('🎭 Updated used characters:', usedIndexes)
+        })
+      } catch (error) {
+        console.error('Fehler beim Setup Character Listener:', error)
+      }
+    }
+
+    const cleanupListener = () => {
+      if (playersListener) {
+        playersListener()
+        playersListener = null
+      }
+    }
+
     // Methods
     const handleJoin = async (joinData) => {
       isJoining.value = true
@@ -180,11 +219,18 @@ export default {
       
       try {
         const iconUrl = characterImages[joinData.iconIndex] || characterImages[0]
-        await joinLobbyAction(props.lobbyCode, joinData.name, iconUrl)
+        // Erweiterte Join-Daten mit iconIndex
+        await joinLobbyAction(props.lobbyCode, joinData.name, iconUrl, joinData.iconIndex)
         hasJoined.value = true
         success('Lobby beigetreten!')
       } catch (err) {
-        error.value = err.message
+        // Spezielle Behandlung für Character-Fehler
+        if (err.message === 'Character bereits vergeben') {
+          console.log('Character bereits vergeben - UI wird automatisch aktualisiert')
+          // Keine Fehlermeldung anzeigen, das UI zeigt es visuell
+        } else {
+          error.value = err.message
+        }
       } finally {
         isJoining.value = false
       }
@@ -320,8 +366,14 @@ export default {
       stopTimer()
     })
 
+    onMounted(() => {
+      // Echtzeit-Listener für Characters einrichten
+      setupCharacterListener()
+    })
+
     onUnmounted(() => {
       stopTimer()
+      cleanupListener()
     })
 
     return {
@@ -338,7 +390,7 @@ export default {
       
       // Computed
       gamePhase, currentQuestionIndex, currentQuestion, currentReward, playerCount,
-      availableJokers, currentEventQuestion,
+      availableJokers, currentEventQuestion, usedCharacters,
       
       // Methods
       handleJoin, selectAnswer, submitVote, leaveLobby

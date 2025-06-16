@@ -32,7 +32,7 @@
         v-else-if="currentLobby && currentLobby.status === 'waiting'"
         :lobby-code="currentLobby.code"
         :join-url="joinUrl"
-        :player-list="realPlayerList || []"
+        :player-list="playerList"
         :player-count="realPlayerCount"
         :is-starting-game="isStartingGame"
         @copy-lobby-code="copyLobbyCode"
@@ -249,6 +249,13 @@ export default {
         .filter(p => p.isOnline && !p.isModerator)
       console.log('🎮 RealPlayerList:', playerList)
       return playerList
+    })
+
+    const playerList = computed(() => {
+      const allPlayers = Object.values(players.value || {})
+        .filter(p => p.isOnline && !p.isHost && !p.isModerator)
+      console.log('🎮 PlayerList for Display:', allPlayers)
+      return allPlayers
     })
 
     const realPlayerCount = computed(() => realPlayerList.value.length)
@@ -729,7 +736,7 @@ export default {
       isAudioEnabled, isPlaying,
       
       // Computed
-      realPlayerCount, currentVoteStats, votedPlayerCount, allPlayersVoted,
+      realPlayerCount, playerList, currentVoteStats, votedPlayerCount, allPlayersVoted,
       
       // Methods
       createLobby, startGame, copyLobbyCode, copyJoinUrl,

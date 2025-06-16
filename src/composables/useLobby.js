@@ -42,7 +42,7 @@ export function useLobby() {
     }
   
   // Lobby beitreten
-  const joinLobby = async (lobbyCode, playerName, playerIcon) => {
+  const joinLobby = async (lobbyCode, playerName, playerIcon, iconIndex) => {
     try {
       error.value = ''
       isLoading.value = true
@@ -55,7 +55,7 @@ export function useLobby() {
         throw new Error('Ungültiger Name (2-20 Zeichen)')
       }
       
-      const lobby = await lobbyStore.joinLobby(lobbyCode, playerName, playerIcon)
+      const lobby = await lobbyStore.joinLobby(lobbyCode, playerName, playerIcon, iconIndex)
       return lobby
       
     } catch (err) {

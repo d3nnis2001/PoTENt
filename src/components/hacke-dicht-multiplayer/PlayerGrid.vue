@@ -26,10 +26,6 @@
       </div>
     </div>
     
-    <div v-if="players.length === 0 && showTitle === 'left'" class="text-center py-4">
-      <div class="text-2xl mb-1">👥</div>
-      <p class="text-orange-200 text-xs">Warte auf Spieler...</p>
-    </div>
   </div>
 </template>
 

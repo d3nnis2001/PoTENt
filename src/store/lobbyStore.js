@@ -96,7 +96,7 @@ export const lobbyStore = reactive({
   },
   
   // Vereinfachtes Beitreten (nur für mobile Spieler)
-  async joinLobby(lobbyCode, playerName, playerIcon = '🎮') {
+  async joinLobby(lobbyCode, playerName, playerIcon = '🎮', iconIndex = 0) {
     try {
       this.connectionStatus = 'connecting'
       
@@ -119,6 +119,14 @@ export const lobbyStore = reactive({
       if (existingNames.includes(playerName.toLowerCase())) {
         throw new Error('Name bereits vergeben')
       }
+
+      // Character-Index Validierung
+      const existingIconIndexes = Object.values(lobbyData.players || {})
+        .filter(p => p.iconIndex !== undefined)
+        .map(p => p.iconIndex)
+      if (existingIconIndexes.includes(iconIndex)) {
+        throw new Error('Character bereits vergeben')
+      }
       
       // Spieler hinzufügen
       const playerId = this.generatePlayerId()
@@ -128,6 +136,7 @@ export const lobbyStore = reactive({
         isHost: false,
         isOnline: true,
         icon: playerIcon,
+        iconIndex: iconIndex,
         joinedAt: serverTimestamp(),
         lastSeen: serverTimestamp()
       }
