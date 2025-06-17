@@ -39,7 +39,6 @@
         :current-question-index="currentQuestionIndex"
         :current-question="currentQuestion"
         :current-reward="currentReward"
-        :time-remaining="timeRemaining"
         :available-jokers="availableJokers"
         :hidden-answers="hiddenAnswers"
         :selected-answer="selectedAnswer"
@@ -120,10 +119,8 @@ export default {
     const selectedAnswer = ref(null)
     const hasVoted = ref(false)
     const isSubmitting = ref(false)
-    const timeRemaining = ref(30)
     const hiddenAnswers = ref([])
     const activeJokers = ref([])
-    const questionTimer = ref(null)
     const currentQuestionIdx = ref(-1) // Track current question index
 
     const error = ref('')
@@ -237,7 +234,7 @@ export default {
     }
 
     const selectAnswer = (answerIndex) => {
-      if (hasVoted.value || timeRemaining.value <= 0 || hiddenAnswers.value.includes(answerIndex)) return
+      if (hasVoted.value || hiddenAnswers.value.includes(answerIndex)) return
       selectedAnswer.value = answerIndex
     }
 
@@ -265,12 +262,6 @@ export default {
       }
     }
 
-    const stopTimer = () => {
-      if (questionTimer.value) {
-        clearInterval(questionTimer.value)
-        questionTimer.value = null
-      }
-    }
 
     // Watchers
     watch(() => gameState.value, (newState) => {
@@ -296,41 +287,20 @@ export default {
           console.log('🔄 Same question, keeping vote state')
         }
         
-        // Timer synchronisieren mit questionStartTime
-        const startTime = newState.questionStartTime
-        if (startTime) {
-          const now = Date.now()
-          const elapsed = Math.floor((now - startTime) / 1000)
-          timeRemaining.value = Math.max(0, 30 - elapsed)
-        } else {
-          timeRemaining.value = 30
-        }
-        
-        // Timer starten
-        stopTimer()
-        questionTimer.value = setInterval(() => {
-          timeRemaining.value--
-          if (timeRemaining.value <= 0) {
-            stopTimer()
-          }
-        }, 1000)
       }
       
       // Event Phase
       if (newState.phase === 'event') {
         console.log('🎭 Player: Event Phase gestartet')
-        stopTimer()
       }
       
       // Progress Phase
       if (newState.phase === 'progress') {
         console.log('📊 Player: Progress Phase gestartet')
-        stopTimer()
       }
       
-      // Timer stoppen bei Results und Finished
+      // Debug für Results und Finished
       if (newState.phase === 'results' || newState.phase === 'finished') {
-        stopTimer()
         
         // Debug für Results Phase
         if (newState.phase === 'results') {
@@ -363,7 +333,6 @@ export default {
       selectedAnswer.value = null
       hasVoted.value = false
       error.value = ''
-      stopTimer()
     })
 
     onMounted(() => {
@@ -372,7 +341,6 @@ export default {
     })
 
     onUnmounted(() => {
-      stopTimer()
       cleanupListener()
     })
 
@@ -382,7 +350,7 @@ export default {
       
       // State
       hasJoined, isJoining,
-      selectedAnswer, hasVoted, isSubmitting, timeRemaining,
+      selectedAnswer, hasVoted, isSubmitting,
       hiddenAnswers, activeJokers, error,
       
       // Lobby State

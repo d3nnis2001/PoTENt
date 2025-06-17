@@ -79,7 +79,6 @@
           :is-host="currentPlayer?.isHost || false"
           :real-player-count="realPlayerCount"
           :voted-player-count="votedPlayerCount"
-          :time-remaining="timeRemaining"
         />
 
         <!-- Question Card mit integrierten Votes -->
@@ -97,7 +96,6 @@
           :real-player-count="realPlayerCount"
           :voted-player-count="votedPlayerCount"
           :all-players-voted="allPlayersVoted"
-          :time-remaining="timeRemaining"
           :is-disconnected="connectionStatus !== 'connected'"
           @show-answer="showAnswer"
           @next-question="nextQuestion"
@@ -121,6 +119,16 @@
         v-if="jokerMessage"
         :joker-message="jokerMessage"
         @close="clearJokerMessage"
+      />
+      
+      <!-- Teaser Modal (nur für Host) -->
+      <TeaserModal
+        v-if="currentPlayer?.isHost"
+        :visible="teaserModal.visible"
+        :message="teaserModal.message"
+        :category="teaserModal.category"
+        :duration="10"
+        @close="closeTeaserModal"
       />
     </div>
   </div>
@@ -151,6 +159,10 @@ import QuestionHeader from '../components/hacke-dicht-multiplayer/QuestionHeader
 import AnswerFeedback from '../components/hacke-dicht-multiplayer/AnswerFeedback.vue'
 import LobbySetupForm from '../components/hacke-dicht-multiplayer/LobbySetupForm.vue'
 import LobbyWaitingArea from '../components/hacke-dicht-multiplayer/LobbyWaitingArea.vue'
+import TeaserModal from '../components/hacke-dicht-multiplayer/TeaserModal.vue'
+
+// Import Teaser Messages
+import teaserMessages from '../data/teaserMessages.json'
 
 export default {
   name: 'HackeDichtPlayMultiplayer',
@@ -168,7 +180,8 @@ export default {
     QuestionHeader,
     AnswerFeedback,
     LobbySetupForm,
-    LobbyWaitingArea
+    LobbyWaitingArea,
+    TeaserModal
   },
   props: {
     gameId: {
@@ -208,9 +221,6 @@ export default {
     const isCreatingLobby = ref(false)
     const isStartingGame = ref(false)
 
-    // Timer Management
-    const questionTimer = ref(null)
-    const timeRemaining = ref(30)
 
     // Joker System
     const jokers = ref({
@@ -220,6 +230,16 @@ export default {
     })
     const hiddenAnswers = ref([])
     const jokerMessage = ref(null)
+    
+    // Teaser System
+    const playerStats = ref({})
+    const teaserModal = ref({
+      visible: false,
+      message: '',
+      category: 'middle'
+    })
+    const questionsSinceLastTeaser = ref(0)
+    const nextTeaserInterval = ref(Math.random() < 0.5 ? 2 : 3) // Random 2 oder 3
 
     // Computed Properties
     const currentQuestionIndex = computed(() => {
@@ -299,43 +319,6 @@ export default {
       return Object.values(votes).filter(vote => vote.answer !== correctAnswer).length
     }
 
-    // Timer Methods
-    const startQuestionTimer = () => {
-      console.log('🕐 Starte Question Timer')
-      timeRemaining.value = 30
-      
-      if (questionTimer.value) {
-        clearInterval(questionTimer.value)
-      }
-      
-      questionTimer.value = setInterval(() => {
-        timeRemaining.value--
-        
-        if (timeRemaining.value <= 0) {
-          console.log('⏰ Zeit abgelaufen!')
-          clearInterval(questionTimer.value)
-          questionTimer.value = null
-          
-          // Auto-aufdecken wenn Host und noch in reading phase
-          if (currentLobby.value && 
-              currentPlayer.value?.isHost && 
-              gamePhase.value === 'reading') {
-            console.log('🔓 Auto-aufdecken als Host')
-            setTimeout(() => {
-              showAnswer()
-            }, 1000)
-          }
-        }
-      }, 1000)
-    }
-
-    const stopQuestionTimer = () => {
-      if (questionTimer.value) {
-        console.log('🛑 Stoppe Question Timer')
-        clearInterval(questionTimer.value)
-        questionTimer.value = null
-      }
-    }
 
     // Computed für Join URL
     const joinUrl = computed(() => {
@@ -415,7 +398,6 @@ export default {
       console.log('🔍 Show Answer')
       try {
         await showAnswerAction()
-        stopQuestionTimer()
         stopAudio()
         playCorrectAnswerAudio()
       } catch (error) {
@@ -490,7 +472,6 @@ export default {
 
     const handleBackToGallery = () => {
       stopAudio()
-      stopQuestionTimer()
       router.push('/hacke-dicht/gallery')
     }
 
@@ -573,6 +554,126 @@ export default {
     const clearJokerMessage = () => {
       jokerMessage.value = null
     }
+    
+    // Teaser System Methods
+    const initializePlayerStats = () => {
+      const players = Object.values(currentLobby.value?.players || {})
+        .filter(p => !p.isHost && !p.isModerator && p.isOnline)
+      
+      players.forEach(player => {
+        if (!playerStats.value[player.id]) {
+          playerStats.value[player.id] = {
+            name: player.name,
+            correct: 0,
+            wrong: 0,
+            total: 0
+          }
+        }
+      })
+    }
+    
+    const updatePlayerStats = () => {
+      if (!currentLobby.value || !currentQuestion.value) return
+      
+      const votes = currentLobby.value.votes?.[currentQuestionIndex.value] || {}
+      const correctAnswer = currentQuestion.value.correctAnswer
+      
+      Object.entries(votes).forEach(([playerId, vote]) => {
+        if (!playerStats.value[playerId]) {
+          // Find player name
+          const player = Object.values(currentLobby.value.players || {}).find(p => p.id === playerId)
+          playerStats.value[playerId] = {
+            name: player?.name || 'Unknown',
+            correct: 0,
+            wrong: 0,
+            total: 0
+          }
+        }
+        
+        const stat = playerStats.value[playerId]
+        stat.total++
+        
+        if (vote.answer === correctAnswer) {
+          stat.correct++
+        } else {
+          stat.wrong++
+        }
+      })
+      
+      console.log('📊 Updated player stats:', playerStats.value)
+    }
+    
+    const getRandomMessage = (category, playerName) => {
+      const messages = teaserMessages[category] || []
+      if (messages.length === 0) return ''
+      
+      const randomMessage = messages[Math.floor(Math.random() * messages.length)]
+      return randomMessage.replace('{playerName}', playerName)
+    }
+    
+    const shouldShowTeaser = () => {
+      questionsSinceLastTeaser.value++
+      return questionsSinceLastTeaser.value >= nextTeaserInterval.value
+    }
+    
+    const resetTeaserCounter = () => {
+      questionsSinceLastTeaser.value = 0
+      nextTeaserInterval.value = Math.random() < 0.5 ? 2 : 3 // Neues Random Intervall
+    }
+    
+    const showTeaser = () => {
+      if (!currentPlayer.value?.isHost || !shouldShowTeaser()) return
+      
+      const stats = Object.values(playerStats.value).filter(stat => stat.total > 0)
+      if (stats.length === 0) return
+      
+      // Berechne Erfolgsraten
+      const playersWithRates = stats.map(stat => ({
+        ...stat,
+        successRate: stat.total > 0 ? stat.correct / stat.total : 0
+      })).sort((a, b) => b.successRate - a.successRate)
+      
+      if (playersWithRates.length === 0) return
+      
+      let targetPlayer
+      let category
+      
+      // Zufällig zwischen bestem und schlechtestem Spieler wählen
+      const showBest = Math.random() < 0.5
+      
+      if (showBest && playersWithRates[0].successRate > 0.5) {
+        // Bester Spieler
+        targetPlayer = playersWithRates[0]
+        category = 'best'
+      } else if (!showBest && playersWithRates[playersWithRates.length - 1].successRate < 0.5) {
+        // Schlechtester Spieler
+        targetPlayer = playersWithRates[playersWithRates.length - 1]
+        category = 'worst'
+      } else {
+        // Mittlerer Spieler
+        const middleIndex = Math.floor(playersWithRates.length / 2)
+        targetPlayer = playersWithRates[middleIndex]
+        category = 'middle'
+      }
+      
+      if (!targetPlayer) return
+      
+      const message = getRandomMessage(category, targetPlayer.name)
+      if (!message) return
+      
+      teaserModal.value = {
+        visible: true,
+        message,
+        category
+      }
+      
+      resetTeaserCounter()
+      console.log('🎭 Showing teaser:', { player: targetPlayer.name, category, message })
+    }
+    
+    const closeTeaserModal = () => {
+      teaserModal.value.visible = false
+    }
 
     // Initialize Game
     const initializeGame = async () => {
@@ -619,7 +720,6 @@ export default {
           showEventQuestion.value = true
           showProgressScreen.value = false
           gamePhase.value = 'event'
-          stopQuestionTimer()
           stopAudio()
         }
       }
@@ -629,7 +729,6 @@ export default {
         showProgressScreen.value = true
         showEventQuestion.value = false
         gamePhase.value = 'progress'
-        stopQuestionTimer()
         stopAudio()
       }
       // Voting Phase
@@ -638,13 +737,22 @@ export default {
         gamePhase.value = 'reading'
         showProgressScreen.value = false
         showEventQuestion.value = false
-        startQuestionTimer()
+        
+        // Initialize player stats if needed
+        if (Object.keys(playerStats.value).length === 0) {
+          initializePlayerStats()
+        }
       } 
       // Results Phase
       else if (newState.phase === 'results') {
         console.log('📊 Switching to results phase') 
         gamePhase.value = 'showing_answer'
-        stopQuestionTimer()
+        
+        // Update player stats and potentially show teaser
+        updatePlayerStats()
+        setTimeout(() => {
+          showTeaser()
+        }, 2000) // 2 Sekunden nach Results-Phase
       } 
       // Finished Phase
       else if (newState.phase === 'finished') {
@@ -652,7 +760,6 @@ export default {
         showResults.value = true
         showProgressScreen.value = false
         showEventQuestion.value = false
-        stopQuestionTimer()
       }
     }, { deep: true })
 
@@ -677,14 +784,9 @@ export default {
         else if (gamePhase.value === 'showing_answer') {
           nextQuestion()
         }
-        // Reading Phase: Antwort aufdecken (nur wenn alle abgestimmt haben oder Zeit abgelaufen)
+        // Reading Phase: Antwort aufdecken (Host kann immer manuell weiter)
         else if (gamePhase.value === 'reading') {
-          // Prüfen ob alle Spieler abgestimmt haben oder Zeit abgelaufen ist
-          if (allPlayersVoted.value || timeRemaining.value <= 0) {
-            showAnswer()
-          } else {
-            console.log('⏳ Warte auf alle Spieler oder bis Zeit abläuft')
-          }
+          showAnswer()
         }
       }
     }
@@ -700,13 +802,10 @@ export default {
     watch(() => allPlayersVoted.value, (newValue) => {
       if (newValue && 
           currentPlayer.value?.isHost && 
-          gamePhase.value === 'reading' && 
-          timeRemaining.value > 0) {
-        console.log('🎯 Alle Spieler haben abgestimmt - Timer auf 0 setzen')
-        timeRemaining.value = 0
+          gamePhase.value === 'reading') {
+        console.log('🎯 Alle Spieler haben abgestimmt - zeige Antwort automatisch')
         
-        // Timer stoppen und nach kurzer Verzögerung aufdecken
-        stopQuestionTimer()
+        // Nach kurzer Verzögerung aufdecken
         setTimeout(() => {
           showAnswer()
         }, 1500) // 1.5 Sekunden Verzögerung für bessere UX
@@ -715,7 +814,6 @@ export default {
 
     onUnmounted(() => {
       stopAudio()
-      stopQuestionTimer()
       window.removeEventListener('keydown', handleKeyPress)
     })
 
@@ -727,7 +825,7 @@ export default {
       showResults, showEventQuestion, showProgressScreen,
       currentEventQuestion, currentReward, isLastQuestion,
       jokers, hiddenAnswers, jokerMessage,
-      timeRemaining,
+      teaserModal,
       
       // Join URL
       joinUrl,
@@ -743,6 +841,7 @@ export default {
       continueFromProgress, showAnswer, nextQuestion,
       continueAfterEvent, restartGame, handleBackToGallery,
       handleJokerUse, clearJokerMessage, getWrongPlayerCount,
+      closeTeaserModal,
       
       // Audio Methods
       toggleAudio, toggleAudioEnabled,

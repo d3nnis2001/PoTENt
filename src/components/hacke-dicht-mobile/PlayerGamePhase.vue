@@ -36,7 +36,6 @@
       v-else-if="gamePhase === 'reading'"
       :current-question="currentQuestion"
       :current-question-index="currentQuestionIndex"
-      :time-remaining="timeRemaining"
       :available-jokers="availableJokers"
       :hidden-answers="hiddenAnswers"
       :selected-answer="selectedAnswer"
@@ -100,10 +99,6 @@ export default {
     currentReward: {
       type: Object,
       default: null
-    },
-    timeRemaining: {
-      type: Number,
-      required: true
     },
     availableJokers: {
       type: Object,

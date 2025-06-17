@@ -1,0 +1,33 @@
+{
+  "best": [
+    "{playerName}, du bist ja richtig gut heute! 🏆",
+    "{playerName} ist unser Quiz-Champion! 🥇",
+    "{playerName}, lass auch mal andere gewinnen! 😄",
+    "Wow {playerName}, du kennst dich aus! 🧠",
+    "{playerName} ist heute unschlagbar! ⭐", 
+    "Respekt {playerName}, du bist on fire! 🔥",
+    "{playerName}, bist du Google oder was? 🤓",
+    "Unfair {playerName}, du weißt zu viel! 😅"
+  ],
+  "worst": [
+    "{playerName}, gib dir mal bisschen Mühe, du bist voll schlecht! 😜",
+    "{playerName}, trink weniger und denk mehr! 🍺",
+    "{playerName}, auch ein blindes Huhn findet mal ein Korn... 🐔",
+    "{playerName}, rate einfach A - kann nicht schlimmer werden! 🎲",
+    "{playerName}, deine Glückssträhne kommt bestimmt noch! 🍀",
+    "{playerName}, vielleicht ist Quiz nicht so dein Ding? 🤷‍♂️",
+    "{playerName}, Google ist dein Freund... oh warte! 📱",
+    "{playerName}, konzentrier dich mal! 🤦‍♂️",
+    "{playerName}, auch Verlierer sind wichtig! 💔"
+  ],
+  "middle": [
+    "{playerName}, du bist solide dabei! 👍",
+    "{playerName}, genau im Mittelfeld - nice! 😎",
+    "{playerName}, du hältst die Balance! ⚖️",
+    "{playerName}, konstant mittelmäßig! 😄",
+    "{playerName}, du bist unser stabiler Anker! ⚓",
+    "{playerName}, Durchschnitt ist auch okay! 📊",
+    "{playerName}, du machst dein Ding! 🤘",
+    "{playerName}, immer schön in der Mitte! 🎯"
+  ]
+}

@@ -44,7 +44,7 @@
           v-for="(answer, index) in question.answers"
           :key="`player-${index}`"
           @click="$emit('select-answer', index)"
-          :disabled="hasVotedFinal || isDisconnected || timeRemaining <= 0"
+          :disabled="hasVotedFinal || isDisconnected"
           :class="[
             'p-4 rounded-lg font-medium text-left transition-all flex items-center gap-3 min-h-[60px]',
             getPlayerAnswerClasses(index)
@@ -74,11 +74,10 @@
                 <span>{{ votedPlayerCount }}/{{ realPlayerCount }} abgestimmt</span>
               </div>
               <div class="flex items-center gap-2">
-                <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
-                <span v-if="timeRemaining > 0">{{ timeRemaining }}s</span>
-                <span v-else class="text-red-300">Zeit abgelaufen!</span>
+                <span class="text-blue-300">Warten auf Antworten</span>
               </div>
             </div>
             
@@ -95,7 +94,12 @@
             v-if="gamePhase === 'reading'"
             @click="$emit('show-answer')"
             :disabled="!canShowAnswer"
-            class="bg-white text-orange-600 py-4 px-8 rounded-lg font-bold text-xl hover:bg-gray-100 transition-colors disabled:opacity-50"
+            :class="[
+              'py-4 px-8 rounded-lg font-bold text-xl transition-colors disabled:opacity-50',
+              allPlayersVoted 
+                ? 'bg-gray-500 text-white cursor-not-allowed opacity-60' 
+                : 'bg-white text-orange-600 hover:bg-gray-100'
+            ]"
           >
             {{ getShowAnswerButtonText }}
           </button>
@@ -171,23 +175,19 @@ export default {
     realPlayerCount: { type: Number, required: true },
     votedPlayerCount: { type: Number, required: true },
     allPlayersVoted: { type: Boolean, required: true },
-    timeRemaining: { type: Number, required: true },
     isDisconnected: { type: Boolean, required: true }
   },
   emits: ['show-answer', 'next-question', 'select-answer', 'submit-final-vote'],
   computed: {
     canShowAnswer() {
-      return this.allPlayersVoted || this.timeRemaining <= 0
+      return true // Host kann immer manuell weiter machen
     },
     
     getShowAnswerButtonText() {
-      if (this.timeRemaining <= 0) {
-        return 'Zeit abgelaufen - Antwort zeigen'
-      }
       if (this.allPlayersVoted) {
-        return 'Alle haben geantwortet - Antwort zeigen'
+        return 'Alle haben geantwortet - Wird automatisch angezeigt'
       }
-      return `Warten auf Spieler (${this.votedPlayerCount}/${this.realPlayerCount})`
+      return `Antwort zeigen (${this.votedPlayerCount}/${this.realPlayerCount})`
     }
   },
   methods: {
@@ -217,7 +217,7 @@ export default {
         if (this.selectedAnswer === index) {
           return 'bg-blue-600/50 text-white border-2 border-blue-400 shadow-lg'
         }
-        if (this.hasVotedFinal || this.isDisconnected || this.timeRemaining <= 0) {
+        if (this.hasVotedFinal || this.isDisconnected) {
           return 'bg-white/10 text-white/50 border-2 border-white/20 cursor-not-allowed'
         }
         return 'bg-white/20 text-white border-2 border-white/30 hover:border-orange-400/50 hover:bg-white/30 cursor-pointer'

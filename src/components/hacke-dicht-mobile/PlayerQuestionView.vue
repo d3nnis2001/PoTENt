@@ -3,12 +3,6 @@
     <!-- Question Header -->
     <div class="text-center">
       <h2 class="text-xl font-bold text-white mb-2">Frage {{ currentQuestionIndex + 1 }}/15</h2>
-      <div v-if="timeRemaining > 0" class="text-orange-200 text-sm">
-        {{ timeRemaining }}s verbleibend
-      </div>
-      <div v-else class="text-red-300 text-sm">
-        Zeit abgelaufen!
-      </div>
     </div>
 
     <!-- Jokers Display (mobile-optimiert) -->
@@ -86,7 +80,7 @@
         v-for="(answer, index) in currentQuestion.answers"
         :key="index"
         @click="selectAnswer(index)"
-        :disabled="hasVoted || timeRemaining <= 0 || isHidden(index)"
+        :disabled="hasVoted || isHidden(index)"
         :class="[
           'w-full p-4 rounded-lg text-left transition-all flex items-center gap-3',
           getAnswerButtonClass(index)
@@ -113,15 +107,17 @@
       </button>
     </div>
 
-    <!-- Vote Confirmed -->
+    <!-- Vote Confirmed - Kompakte Version -->
     <div v-else-if="hasVoted" class="text-center">
-      <div class="bg-green-600/20 backdrop-blur-lg rounded-xl p-6 border border-green-400/30">
-        <div class="text-6xl mb-4 animate-bounce">✓</div>
-        <h3 class="text-xl font-bold text-white mb-2">Antwort bestätigt!</h3>
-        <p class="text-green-200 mb-4">Warte auf andere Spieler...</p>
-        <div class="text-sm text-white/70">
-          Du hast {{ String.fromCharCode(65 + selectedAnswer) }} gewählt
+      <div class="bg-green-600/20 backdrop-blur-lg rounded-lg p-4 border border-green-400/30">
+        <div class="flex items-center justify-center gap-3 mb-2">
+          <div class="text-2xl animate-pulse">✓</div>
+          <div>
+            <h3 class="text-lg font-bold text-white">Antwort bestätigt</h3>
+            <p class="text-green-200 text-sm">Antwort {{ String.fromCharCode(65 + selectedAnswer) }} gewählt</p>
+          </div>
         </div>
+        <p class="text-green-200/80 text-xs">Warten auf andere Spieler...</p>
       </div>
     </div>
 
@@ -146,10 +142,6 @@ export default {
       required: true
     },
     currentQuestionIndex: {
-      type: Number,
-      required: true
-    },
-    timeRemaining: {
       type: Number,
       required: true
     },
@@ -190,7 +182,7 @@ export default {
     })
     
     const selectAnswer = (answerIndex) => {
-      if (props.hasVoted || props.timeRemaining <= 0 || isHidden(answerIndex)) return
+      if (props.hasVoted || isHidden(answerIndex)) return
       emit('select-answer', answerIndex)
     }
     
@@ -207,7 +199,7 @@ export default {
         return 'bg-blue-600/50 text-white border-2 border-blue-400 shadow-lg'
       }
       
-      if (props.hasVoted || props.timeRemaining <= 0) {
+      if (props.hasVoted) {
         return 'bg-white/10 text-white/50 border-2 border-white/20 cursor-not-allowed'
       }
       
