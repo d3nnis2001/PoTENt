@@ -55,9 +55,10 @@
         @continue="continueAfterEvent"
       />
 
-      <!-- Results (wie Single-Player) -->
-      <ResultsView
+      <!-- Leaderboard -->
+      <LeaderboardView
         v-else-if="showResults"
+        :player-stats="playerStats"
         @restart="restartGame"
         @back-to-gallery="handleBackToGallery"
       />
@@ -135,7 +136,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, provide } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLobby } from '../composables/useLobby'
 import { hackeDichtStore } from '../store/hackeDichtStore'
@@ -148,7 +149,7 @@ import LoadingView from '../components/hacke-dicht/LoadingView.vue'
 import GameNotFoundView from '../components/hacke-dicht/GameNotFoundView.vue'
 import ProgressScreen from '../components/hacke-dicht/ProgressScreen.vue'
 import EventQuestionView from '../components/hacke-dicht/EventQuestionView.vue'
-import ResultsView from '../components/hacke-dicht/ResultsView.vue'
+import LeaderboardView from '../components/hacke-dicht/LeaderboardView.vue'
 import JokerMessageModal from '../components/hacke-dicht/JokerMessageModal.vue'
 import AudioControls from '../components/AudioControls.vue'
 import JokersPanel from '../components/hacke-dicht/JokersPanel.vue'
@@ -172,7 +173,7 @@ export default {
     GameNotFoundView,
     ProgressScreen,
     EventQuestionView,
-    ResultsView,
+    LeaderboardView,
     JokerMessageModal,
     AudioControls,
     JokersPanel,
@@ -795,6 +796,11 @@ export default {
       initializeGame()
       window.addEventListener('keydown', handleKeyPress)
     })
+    
+    // Provide player list for tag parsing
+    provide('playerList', computed(() => {
+      return realPlayerList.value.map(player => player.name)
+    }))
 
     // QR Code generation is now handled by QRCodeSection component
 

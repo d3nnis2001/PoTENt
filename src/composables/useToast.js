@@ -1,4 +1,3 @@
-// src/composables/useToast.js
 import { ref, reactive } from 'vue'
 
 const toasts = reactive([])

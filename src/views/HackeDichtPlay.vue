@@ -36,8 +36,9 @@
         @continue="continueAfterEvent"
       />
 
-      <ResultsView
+      <LeaderboardView
         v-else-if="showResults"
+        :player-stats="{}"
         @restart="restartGame"
         @back-to-gallery="handleBackToGallery"
       />
@@ -66,7 +67,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
 import { useRouter } from 'vue-router'
 import { hackeDichtStore } from '../store/hackeDichtStore'
 import { useAudio } from '../composables/useAudio'
@@ -78,7 +79,7 @@ import LoadingView from '../components/hacke-dicht/LoadingView.vue'
 import GameNotFoundView from '../components/hacke-dicht/GameNotFoundView.vue'
 import ProgressScreen from '../components/hacke-dicht/ProgressScreen.vue'
 import EventQuestionView from '../components/hacke-dicht/EventQuestionView.vue'
-import ResultsView from '../components/hacke-dicht/ResultsView.vue'
+import LeaderboardView from '../components/hacke-dicht/LeaderboardView.vue'
 import QuestionView from '../components/hacke-dicht/QuestionView.vue'
 import JokerMessageModal from '../components/hacke-dicht/JokerMessageModal.vue'
 import AudioControls from '../components/AudioControls.vue'
@@ -92,7 +93,7 @@ export default {
     GameNotFoundView,
     ProgressScreen,
     EventQuestionView,
-    ResultsView,
+    LeaderboardView,
     QuestionView,
     JokerMessageModal,
     AudioControls
@@ -392,6 +393,9 @@ export default {
     onMounted(() => {
       initializeGame()
     })
+    
+    // Provide dummy player list for tag parsing in single player
+    provide('playerList', ['Max', 'Lisa', 'Tom', 'Anna', 'Ben', 'Sara'])
 
     onUnmounted(() => {
       stopAudio()

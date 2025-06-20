@@ -1,0 +1,93 @@
+{
+  "tags": [
+    {
+      "tag": "/random",
+      "syntax": "/random(x)",
+      "label": "Random Players",
+      "description": "Wählt x zufällige Spieler aus der aktuellen Lobby aus",
+      "category": "Spieler",
+      "color": "blue",
+      "icon": "🎲",
+      "examples": [
+        {
+          "code": "/random(1)",
+          "result": "Max",
+          "description": "Ein zufälliger Spieler"
+        },
+        {
+          "code": "/random(2)",
+          "result": "Lisa, Tom",
+          "description": "Zwei zufällige Spieler, kommagetrennt"
+        },
+        {
+          "code": "/random(3)",
+          "result": "Anna, Ben, Sara",
+          "description": "Drei zufällige Spieler"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "x",
+          "type": "number",
+          "description": "Anzahl der Spieler (1-10)",
+          "min": 1,
+          "max": 10
+        }
+      ],
+      "pattern": "^/random\\((\\d+)\\)$",
+      "type": "player_selection"
+    },
+    {
+      "tag": "/player",
+      "syntax": "/player(name)",
+      "label": "Specific Player",
+      "description": "Wählt einen bestimmten Spieler nach Namen aus",
+      "category": "Spieler",
+      "color": "green",
+      "icon": "👤",
+      "examples": [
+        {
+          "code": "/player(Max)",
+          "result": "Max",
+          "description": "Wählt den Spieler Max aus (falls vorhanden)"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "description": "Name des Spielers"
+        }
+      ],
+      "pattern": "^/player\\(([^)]+)\\)$",
+      "type": "player_selection"
+    },
+    {
+      "tag": "/teams",
+      "syntax": "/teams(x)",
+      "label": "Random Teams",
+      "description": "Teilt alle Spieler in x zufällige Teams auf",
+      "category": "Teams",
+      "color": "purple",
+      "icon": "👥",
+      "examples": [
+        {
+          "code": "/teams(2)",
+          "result": "Team 1: Max, Lisa | Team 2: Tom, Anna",
+          "description": "Teilt Spieler in 2 Teams auf"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "x",
+          "type": "number",
+          "description": "Anzahl der Teams (2-5)",
+          "min": 2,
+          "max": 5
+        }
+      ],
+      "pattern": "^/teams\\((\\d+)\\)$",
+      "type": "team_selection"
+    }
+  ]
+}
