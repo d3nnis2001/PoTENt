@@ -9,6 +9,11 @@ import HackeDichtEditor from '../views/HackeDichtEditor.vue'
 import HackeDichtPlay from '../views/HackeDichtPlay.vue'
 import HackeDichtPlayMultiplayer from '../views/HackeDichtPlayMultiplayer.vue'
 import HackeDichtPlayerView from '../views/HackeDichtPlayerView.vue'
+import AiTakesOverGallery from '../views/AiTakesOverGallery.vue'
+import AiTakesOverEditor from '../views/AiTakesOverEditor.vue'
+import AiTakesOverPlay from '../views/AiTakesOverPlay.vue'
+import AiTakesOverPlayMultiplayer from '../views/AiTakesOverPlayMultiplayer.vue'
+import AiTakesOverPlayerView from '../views/AiTakesOverPlayerView.vue'
 
 
 const routes = [
@@ -75,6 +80,44 @@ const routes = [
     path: '/play-mobile/:lobbyCode',
     name: 'HackeDichtPlayerView',
     component: HackeDichtPlayerView,
+    props: true,
+    meta: { requiresAuth: false }
+  },
+  // AI Takes Over Routes
+  {
+    path: '/ai-takes-over/gallery',
+    name: 'AiTakesOverGallery',
+    component: AiTakesOverGallery
+  },
+  {
+    path: '/ai-takes-over/editor',
+    name: 'AiTakesOverEditor',
+    component: AiTakesOverEditor
+  },
+  {
+    path: '/ai-takes-over/editor/:gameId',
+    name: 'AiTakesOverEditorEdit',
+    component: AiTakesOverEditor,
+    props: true
+  },
+  {
+    path: '/ai-takes-over/play/:gameId',
+    name: 'AiTakesOverPlay',
+    component: AiTakesOverPlay,
+    props: true
+  },
+  // AI Takes Over Multiplayer Routes
+  {
+    path: '/ai-takes-over/play-multiplayer/:gameId',
+    name: 'AiTakesOverPlayMultiplayer',
+    component: AiTakesOverPlayMultiplayer,
+    props: true,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/play-mobile-ai/:lobbyCode',
+    name: 'AiTakesOverPlayerView',
+    component: AiTakesOverPlayerView,
     props: true,
     meta: { requiresAuth: false }
   },

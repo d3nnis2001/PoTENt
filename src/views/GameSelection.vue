@@ -79,37 +79,37 @@
           </div>
         </div>
 
-        <!-- Join Lobby Card -->
+        <!-- AI Takes Over -->
         <div class="bg-white/10 backdrop-blur-lg rounded-xl p-8 border border-white/20 hover:bg-white/15 transition-all duration-300 group cursor-pointer transform hover:scale-105"
-             @click="selectGame('join')">
+             @click="selectGame('ai-takes-over')">
           <div class="text-center">
-            <div class="bg-gradient-to-r from-green-600 to-emerald-600 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6 group-hover:from-green-700 group-hover:to-emerald-700 transition-all">
+            <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6 group-hover:from-blue-700 group-hover:to-purple-700 transition-all">
               <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
               </svg>
             </div>
-            <h2 class="text-2xl font-bold text-white mb-3 group-hover:text-green-200 transition-colors">GANIX</h2>
-            <p class="text-green-200 text-sm mb-4">Hier ist noch nichts</p>
+            <h2 class="text-2xl font-bold text-white mb-3 group-hover:text-blue-200 transition-colors">AI Takes Over</h2>
+            <p class="text-blue-200 text-sm mb-4">Die KI übernimmt - wer überlebt das Quiz?</p>
             
             <!-- Features -->
             <div class="space-y-2 text-left">
-              <div class="flex items-center gap-2 text-green-200 text-sm">
+              <div class="flex items-center gap-2 text-blue-200 text-sm">
                 <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
-                <span>Kommt irgendwann</span>
+                <span>15 KI-Fragen</span>
               </div>
-              <div class="flex items-center gap-2 text-green-200 text-sm">
+              <div class="flex items-center gap-2 text-blue-200 text-sm">
                 <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
-                <span>Leider nichts</span>
+                <span>KI-Charaktere</span>
               </div>
-              <div class="flex items-center gap-2 text-green-200 text-sm">
+              <div class="flex items-center gap-2 text-blue-200 text-sm">
                 <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
-                <span>Schau mal andere spiele an</span>
+                <span>Multiplayer-Modus</span>
               </div>
             </div>
           </div>
@@ -152,6 +152,8 @@ export default {
         router.push('/top10/gallery')
       } else if (gameType === 'hacke-dicht') {
         router.push('/hacke-dicht/gallery')
+      } else if (gameType === 'ai-takes-over') {
+        router.push('/ai-takes-over/gallery')
       } else if (gameType === 'join') {
         router.push('/join')
       }

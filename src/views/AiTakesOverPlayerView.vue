@@ -1,0 +1,407 @@
+<template>
+  <div class="min-h-screen p-4 bg-gradient-to-br from-blue-900 via-purple-900 to-cyan-900">
+    <div class="max-w-md mx-auto">
+      
+      <!-- Connection Status (nur nach dem Beitreten anzeigen) -->
+      <div v-if="hasJoined" class="text-center mb-4">
+        <div :class="[
+          'inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs',
+          connectionStatus === 'connected' ? 'bg-green-600/30 text-green-200' : 'bg-red-600/30 text-red-200'
+        ]">
+          <div :class="[
+            'w-2 h-2 rounded-full',
+            connectionStatus === 'connected' ? 'bg-green-400' : 'bg-red-400'
+          ]"></div>
+          {{ connectionStatus === 'connected' ? 'Verbunden' : 'Verbindung verloren' }}
+        </div>
+      </div>
+
+      <!-- Join Form (wenn noch nicht beigetreten) -->
+      <PlayerJoinForm
+        v-if="!hasJoined"
+        :is-joining="isJoining"
+        :used-characters="usedCharacters"
+        @join="handleJoin"
+      />
+
+      <!-- Waiting Screen (nach dem Beitreten, vor Spielstart) -->
+      <PlayerWaitingScreen
+        v-else-if="gamePhase === 'waiting'"
+        :player="currentPlayer"
+        :player-count="playerCount"
+      />
+
+      <!-- Game Phases -->
+      <PlayerGamePhase
+        v-else
+        :game-phase="gamePhase"
+        :current-event-question="currentEventQuestion"
+        :current-question-index="currentQuestionIndex"
+        :current-question="currentQuestion"
+        :current-reward="currentReward"
+        :available-jokers="availableJokers"
+        :hidden-answers="hiddenAnswers"
+        :selected-answer="selectedAnswer"
+        :has-voted="hasVoted"
+        :is-submitting="isSubmitting"
+        @select-answer="selectAnswer"
+        @submit-vote="submitVote"
+        @leave-lobby="leaveLobby"
+      />
+
+      <!-- Error Display -->
+      <div v-if="error" class="mt-4 p-3 bg-red-600/20 border border-red-400/30 rounded-lg">
+        <p class="text-red-300 text-sm text-center">{{ error }}</p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { useLobby } from '../composables/useLobby'
+import { globalToast } from '../composables/useToast'
+
+// Components
+import PlayerJoinForm from '../components/hacke-dicht-mobile/PlayerJoinForm.vue'
+import PlayerWaitingScreen from '../components/hacke-dicht-mobile/PlayerWaitingScreen.vue'
+import PlayerGamePhase from '../components/hacke-dicht-mobile/PlayerGamePhase.vue'
+
+// Dynamic import of AI character images
+const importAiCharacterImages = () => {
+  const images = []
+  const modules = import.meta.glob('../assets/ai-characters/AiCharacter*.png', { eager: true })
+  
+  // Sort by character number
+  const sortedKeys = Object.keys(modules).sort((a, b) => {
+    const numA = parseInt(a.match(/AiCharacter(\d+)\.png$/)?.[1] || '0')
+    const numB = parseInt(b.match(/AiCharacter(\d+)\.png$/)?.[1] || '0')
+    return numA - numB
+  })
+  
+  sortedKeys.forEach(key => {
+    images.push(modules[key].default)
+  })
+  
+  // Fallback to regular characters if AI characters don't exist
+  if (images.length === 0) {
+    const fallbackModules = import.meta.glob('../assets/character/Character*.png', { eager: true })
+    const fallbackSortedKeys = Object.keys(fallbackModules).sort((a, b) => {
+      const numA = parseInt(a.match(/Character(\d+)\.png$/)?.[1] || '0')
+      const numB = parseInt(b.match(/Character(\d+)\.png$/)?.[1] || '0')
+      return numA - numB
+    })
+    
+    fallbackSortedKeys.forEach(key => {
+      images.push(fallbackModules[key].default)
+    })
+  }
+  
+  return images
+}
+
+const characterImages = importAiCharacterImages()
+
+export default {
+  name: 'AiTakesOverPlayerView',
+  components: {
+    PlayerJoinForm,
+    PlayerWaitingScreen,
+    PlayerGamePhase
+  },
+  props: {
+    lobbyCode: {
+      type: String,
+      required: true
+    }
+  },
+  setup(props) {
+    const router = useRouter()
+    const { success, error: showError } = globalToast
+    
+    const {
+      currentLobby, currentPlayer, players, gameState, connectionStatus,
+      joinLobby: joinLobbyAction, submitVote: submitVoteAction, leaveLobby: leaveLobbyAction
+    } = useLobby()
+
+    // Join State
+    const hasJoined = ref(false)
+    const isJoining = ref(false)
+
+    // Game State
+    const selectedAnswer = ref(null)
+    const hasVoted = ref(false)
+    const isSubmitting = ref(false)
+    const hiddenAnswers = ref([])
+    const activeJokers = ref([])
+    const currentQuestionIdx = ref(-1) // Track current question index
+
+    const error = ref('')
+
+    // Computed
+    const gamePhase = computed(() => {
+      if (!hasJoined.value) return 'joining'
+      if (!currentLobby.value) return 'waiting'
+      
+      if (currentLobby.value.status === 'waiting') return 'waiting'
+      if (gameState.value?.phase === 'voting') return 'reading'
+      if (gameState.value?.phase === 'results') return 'results'
+      if (gameState.value?.phase === 'finished') return 'finished'
+      if (gameState.value?.phase === 'event') return 'event'
+      if (gameState.value?.phase === 'progress') return 'progress'
+      
+      return 'waiting'
+    })
+
+    const currentQuestionIndex = computed(() => gameState.value?.currentQuestionIndex || 0)
+    
+    const currentQuestion = computed(() => {
+      if (!currentLobby.value?.gameData) return null
+      return currentLobby.value.gameData.questions[currentQuestionIndex.value]
+    })
+
+    const currentReward = computed(() => {
+      if (!currentLobby.value?.gameData) return null
+      const questionNumber = currentQuestionIndex.value + 1
+      const rewards = currentLobby.value.gameData.rewards
+      if (questionNumber <= 5) return rewards[0]
+      if (questionNumber <= 10) return rewards[1]
+      return rewards[2]
+    })
+
+    const playerCount = computed(() => {
+      return Object.values(players.value || {}).filter(p => p.isOnline).length
+    })
+
+    // Joker Management
+    const availableJokers = computed(() => {
+      if (!gameState.value?.jokers) return {}
+      console.log('🤖 Player availableJokers:', gameState.value.jokers)
+      return gameState.value.jokers
+    })
+
+    const currentEventQuestion = computed(() => {
+      return gameState.value?.currentEventQuestion || null
+    })
+
+    // Echtzeit-Updates für verwendete Characters
+    const usedCharacters = ref([])
+    let playersListener = null
+
+    const setupCharacterListener = async () => {
+      try {
+        const { ref: dbRef, onValue } = await import('firebase/database')
+        const { realtimeDb } = await import('../firebase/config')
+        
+        const playersRef = dbRef(realtimeDb, `lobbies/${props.lobbyCode}/players`)
+        
+        playersListener = onValue(playersRef, (snapshot) => {
+          const usedIndexes = []
+          
+          if (snapshot.exists()) {
+            const players = snapshot.val()
+            Object.values(players).forEach(player => {
+              if (player.isOnline && player.iconIndex !== undefined) {
+                usedIndexes.push(player.iconIndex)
+              }
+            })
+          }
+          
+          usedCharacters.value = usedIndexes
+          console.log('🤖 Updated used characters:', usedIndexes)
+        })
+      } catch (error) {
+        console.error('Fehler beim Setup Character Listener:', error)
+      }
+    }
+
+    const cleanupListener = () => {
+      if (playersListener) {
+        playersListener()
+        playersListener = null
+      }
+    }
+
+    // Methods
+    const handleJoin = async (joinData) => {
+      isJoining.value = true
+      error.value = ''
+      
+      try {
+        const iconUrl = characterImages[joinData.iconIndex] || characterImages[0]
+        // Erweiterte Join-Daten mit iconIndex
+        await joinLobbyAction(props.lobbyCode, joinData.name, iconUrl, joinData.iconIndex)
+        hasJoined.value = true
+        success('Lobby beigetreten!')
+      } catch (err) {
+        // Spezielle Behandlung für Character-Fehler
+        if (err.message === 'Character bereits vergeben') {
+          console.log('Character bereits vergeben - UI wird automatisch aktualisiert')
+          // Keine Fehlermeldung anzeigen, das UI zeigt es visuell
+        } else {
+          error.value = err.message
+        }
+      } finally {
+        isJoining.value = false
+      }
+    }
+
+    const selectAnswer = (answerIndex) => {
+      if (hasVoted.value || hiddenAnswers.value.includes(answerIndex)) return
+      selectedAnswer.value = answerIndex
+    }
+
+    const submitVote = async () => {
+      if (isSubmitting.value || hasVoted.value || selectedAnswer.value === null) return
+      
+      isSubmitting.value = true
+      try {
+        await submitVoteAction(currentQuestionIndex.value, selectedAnswer.value)
+        hasVoted.value = true
+        success('Antwort bestätigt!')
+      } catch (err) {
+        error.value = 'Fehler beim Abstimmen: ' + err.message
+      } finally {
+        isSubmitting.value = false
+      }
+    }
+
+    const leaveLobby = async () => {
+      try {
+        await leaveLobbyAction()
+        router.push('/')
+      } catch (err) {
+        router.push('/')
+      }
+    }
+
+    // Watchers
+    watch(() => gameState.value, (newState) => {
+      if (!newState) return
+      
+      console.log('🔄 Player GameState Update:', {
+        phase: newState.phase,
+        questionIndex: newState.currentQuestionIndex
+      })
+      
+      // Reset vote state nur für wirklich neue Fragen
+      if (newState.phase === 'voting') {
+        const newQuestionIndex = newState.currentQuestionIndex
+        
+        // Nur reset wenn es eine neue Frage ist
+        if (newQuestionIndex !== currentQuestionIdx.value) {
+          console.log('🔄 Resetting vote state for NEW question:', newQuestionIndex)
+          currentQuestionIdx.value = newQuestionIndex
+          selectedAnswer.value = null
+          hasVoted.value = false
+          hiddenAnswers.value = []
+        } else {
+          console.log('🔄 Same question, keeping vote state')
+        }
+      }
+      
+      // Event Phase
+      if (newState.phase === 'event') {
+        console.log('🎭 Player: Event Phase gestartet')
+      }
+      
+      // Progress Phase
+      if (newState.phase === 'progress') {
+        console.log('📊 Player: Progress Phase gestartet')
+      }
+      
+      // Debug für Results und Finished
+      if (newState.phase === 'results' || newState.phase === 'finished') {
+        
+        // Debug für Results Phase
+        if (newState.phase === 'results') {
+          console.log('🎯 Results Phase - selectedAnswer:', selectedAnswer.value)
+          console.log('🎯 Results Phase - currentQuestion.correctAnswer:', currentQuestion.value?.correctAnswer)
+        }
+      }
+      
+      // Joker Updates
+      if (newState.jokers) {
+        activeJokers.value = Object.keys(newState.jokers).filter(key => newState.jokers[key].used)
+        
+        // 50/50 Joker anwenden
+        if (newState.jokers.fiftyFifty?.used && currentQuestion.value) {
+          const wrongAnswers = []
+          for (let i = 0; i < 4; i++) {
+            if (i !== currentQuestion.value.correctAnswer) {
+              wrongAnswers.push(i)
+            }
+          }
+          const shuffled = wrongAnswers.sort(() => 0.5 - Math.random())
+          hiddenAnswers.value = shuffled.slice(0, 2)
+        }
+      }
+    }, { deep: true })
+
+    watch(() => props.lobbyCode, () => {
+      // Reset bei Lobby-Wechsel
+      hasJoined.value = false
+      selectedAnswer.value = null
+      hasVoted.value = false
+      error.value = ''
+    })
+
+    onMounted(() => {
+      // Echtzeit-Listener für Characters einrichten
+      setupCharacterListener()
+    })
+
+    onUnmounted(() => {
+      cleanupListener()
+    })
+
+    return {
+      // Props
+      lobbyCode: props.lobbyCode,
+      
+      // State
+      hasJoined, isJoining,
+      selectedAnswer, hasVoted, isSubmitting,
+      hiddenAnswers, activeJokers, error,
+      
+      // Lobby State
+      currentLobby, currentPlayer, players, connectionStatus,
+      
+      // Computed
+      gamePhase, currentQuestionIndex, currentQuestion, currentReward, playerCount,
+      availableJokers, currentEventQuestion, usedCharacters,
+      
+      // Methods
+      handleJoin, selectAnswer, submitVote, leaveLobby
+    }
+  }
+}
+</script>
+
+<style scoped>
+/* Mobile optimized styles */
+@media (max-width: 640px) {
+  .text-2xl {
+    font-size: 1.5rem;
+  }
+  
+  .text-xl {
+    font-size: 1.125rem;
+  }
+  
+  .p-6 {
+    padding: 1rem;
+  }
+  
+  .py-4 {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+}
+
+/* Touch-friendly button sizing */
+button {
+  min-height: 44px;
+}
+</style>
