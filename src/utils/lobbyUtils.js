@@ -1,8 +1,3 @@
-// Verfügbare Spieler-Icons
-export const PLAYER_ICONS = [
-  '🎮', '🎯', '🎲', '🎪', '🎨', '🎭', '🎪', '🎨', '🎭', '🎪'
-]
-
 // Lobby-Code Validierung
 export function isValidLobbyCode(code) {
   return /^[A-Z0-9]{6}$/.test(code)

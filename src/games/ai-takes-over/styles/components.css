@@ -1,0 +1,279 @@
+/**
+ * AI Takes Over - Reusable Component Styles
+ * Common styles used across multiple components
+ */
+
+/* =============================================================================
+   TIMER STYLES
+   ============================================================================= */
+
+.ai-timer-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 4px solid var(--ai-cyan);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--ai-shadow-glow);
+}
+
+.ai-timer-circle--small {
+  width: 100px;
+  height: 100px;
+}
+
+.ai-timer-value {
+  font-size: 48px;
+  font-family: monospace;
+  font-weight: bold;
+  color: var(--ai-cyan);
+}
+
+.ai-timer-value--small {
+  font-size: 40px;
+}
+
+.ai-timer-text {
+  font-size: 24px;
+  font-family: monospace;
+  font-weight: bold;
+  color: var(--ai-cyan);
+}
+
+/* Timer Bar (for mobile) */
+.ai-timer-bar {
+  position: relative;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: var(--ai-radius-sm);
+  margin-bottom: var(--ai-spacing-md);
+  overflow: hidden;
+}
+
+.ai-timer-bar__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ai-cyan), var(--ai-pink));
+  transition: width 1s linear;
+}
+
+.ai-timer-bar__text {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: monospace;
+  font-size: var(--ai-font-xs);
+  color: var(--ai-cyan);
+}
+
+/* =============================================================================
+   CARD STYLES
+   ============================================================================= */
+
+.ai-card {
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid var(--ai-border);
+  border-radius: var(--ai-radius-lg);
+  padding: var(--ai-spacing-md);
+  position: relative;
+  transition: all var(--ai-transition-normal);
+}
+
+.ai-card--active {
+  border-color: var(--ai-cyan);
+  box-shadow: var(--ai-shadow-glow);
+}
+
+.ai-card__letter {
+  position: absolute;
+  top: -12px;
+  left: 16px;
+  background: var(--ai-cyan);
+  color: #000;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: monospace;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+/* =============================================================================
+   SCOREBOARD STYLES
+   ============================================================================= */
+
+.ai-scoreboard {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.ai-score-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ai-spacing-md);
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--ai-border);
+  border-radius: var(--ai-radius-md);
+  margin-bottom: var(--ai-spacing-sm);
+}
+
+.ai-score-row--highlight {
+  background: rgba(var(--ai-cyan-rgb), 0.1);
+  border-color: var(--ai-cyan);
+}
+
+.ai-score-row__rank {
+  width: 32px;
+  height: 32px;
+  background: var(--ai-cyan);
+  color: #000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: monospace;
+  font-weight: bold;
+}
+
+.ai-score-row__player {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ai-score-row__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--ai-border);
+}
+
+.ai-score-row__name {
+  font-family: monospace;
+  font-size: 16px;
+  color: var(--ai-text);
+}
+
+.ai-score-row__score {
+  font-family: monospace;
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--ai-cyan);
+}
+
+/* =============================================================================
+   VOTE STYLES
+   ============================================================================= */
+
+.ai-vote-count {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ai-border);
+}
+
+.ai-vote-count__number {
+  font-size: 32px;
+  font-family: monospace;
+  font-weight: bold;
+  color: var(--ai-cyan);
+}
+
+.ai-vote-count__label {
+  font-size: 12px;
+  font-family: monospace;
+  color: var(--ai-text-muted);
+  text-transform: uppercase;
+}
+
+/* =============================================================================
+   PHASE INDICATORS
+   ============================================================================= */
+
+.ai-waiting-content {
+  text-align: center;
+}
+
+.ai-pulse-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  color: var(--ai-cyan);
+  animation: ai-pulse 2s ease-in-out infinite;
+}
+
+.ai-loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--ai-border);
+  border-top-color: var(--ai-cyan);
+  border-radius: 50%;
+  margin: 0 auto 16px;
+  animation: ai-spin 1s linear infinite;
+}
+
+/* =============================================================================
+   ANIMATIONS
+   ============================================================================= */
+
+@keyframes ai-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ai-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.95); }
+}
+
+@keyframes ai-reveal-card {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ai-glitch {
+  0%, 85%, 100% {
+    transform: translate(0);
+  }
+  87% {
+    transform: translate(-3px, 1px);
+  }
+  89% {
+    transform: translate(3px, -1px);
+  }
+  91% {
+    transform: translate(-2px, 2px);
+  }
+}
+
+/* =============================================================================
+   UTILITIES
+   ============================================================================= */
+
+.ai-text-glow {
+  text-shadow: var(--ai-text-glow);
+}
+
+.ai-mono {
+  font-family: monospace;
+}
+
+.ai-prompt-reminder {
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--ai-border);
+  border-radius: var(--ai-radius-md);
+}

@@ -1,0 +1,58 @@
+/**
+ * AI Takes Over - CSS Variables
+ * Central theme colors and design tokens
+ */
+
+:root {
+  /* Primary Colors */
+  --ai-cyan: #00ffff;
+  --ai-cyan-rgb: 0, 255, 255;
+  --ai-pink: #ff00ff;
+  --ai-pink-rgb: 255, 0, 255;
+
+  /* Background Colors */
+  --ai-bg-dark: #0a0a1a;
+  --ai-bg-mid: #0d1b2a;
+  --ai-bg-light: #1a1a3a;
+
+  /* Text Colors */
+  --ai-text: #e0e0e0;
+  --ai-text-muted: #8892b0;
+  --ai-text-bright: #ffffff;
+
+  /* Border Colors */
+  --ai-border: rgba(0, 255, 255, 0.3);
+  --ai-border-active: rgba(0, 255, 255, 0.6);
+
+  /* Shadows & Glows */
+  --ai-shadow-glow: 0 0 15px rgba(0, 255, 255, 0.3);
+  --ai-shadow-glow-intense: 0 0 25px rgba(0, 255, 255, 0.5);
+  --ai-text-glow: 0 0 10px rgba(0, 255, 255, 0.8);
+
+  /* Timing */
+  --ai-transition-fast: 0.15s;
+  --ai-transition-normal: 0.3s;
+  --ai-transition-slow: 0.5s;
+
+  /* Spacing */
+  --ai-spacing-xs: 4px;
+  --ai-spacing-sm: 8px;
+  --ai-spacing-md: 16px;
+  --ai-spacing-lg: 24px;
+  --ai-spacing-xl: 32px;
+
+  /* Border Radius */
+  --ai-radius-sm: 4px;
+  --ai-radius-md: 8px;
+  --ai-radius-lg: 12px;
+  --ai-radius-full: 9999px;
+
+  /* Font Sizes */
+  --ai-font-xs: 10px;
+  --ai-font-sm: 12px;
+  --ai-font-md: 14px;
+  --ai-font-lg: 18px;
+  --ai-font-xl: 24px;
+  --ai-font-2xl: 32px;
+  --ai-font-3xl: 48px;
+}

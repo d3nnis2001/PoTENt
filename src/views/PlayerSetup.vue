@@ -192,7 +192,7 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { playerStore } from '../store/playerStore'
+import { playerStore } from '@/shared/store/playerStore'
 
 export default {
   name: 'PlayerSetup',

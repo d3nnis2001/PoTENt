@@ -138,9 +138,9 @@
 <script>
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { playerStore } from '../store/playerStore'
-import hackeDichtLogo from '../assets/HackeDichtLogo.png'
-import potentLogo from "../assets/PoTENtLogo.png"
+import { playerStore } from '@/shared/store/playerStore'
+import hackeDichtLogo from '@/assets/shared/HackeDichtLogo.png'
+import potentLogo from "@/assets/shared/PoTENtLogo.png"
 
 export default {
   name: 'GameSelection',
@@ -153,7 +153,7 @@ export default {
       } else if (gameType === 'hacke-dicht') {
         router.push('/hacke-dicht/gallery')
       } else if (gameType === 'ai-takes-over') {
-        router.push('/ai-takes-over/gallery')
+        router.push('/ai-takes-over')
       } else if (gameType === 'join') {
         router.push('/join')
       }

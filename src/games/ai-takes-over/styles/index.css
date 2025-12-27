@@ -1,0 +1,7 @@
+/**
+ * AI Takes Over - Main Styles Entry Point
+ * Import this file to get all AI Takes Over styles
+ */
+
+@import './variables.css';
+@import './components.css';

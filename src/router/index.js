@@ -1,19 +1,25 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+
+// Shared views
 import Login from '../views/Login.vue'
 import GameSelection from '../views/GameSelection.vue'
-import Gallery from '../views/Gallery.vue'
-import EditDeck from '../views/EditDeck.vue'
-import PlayDeck from '../views/PlayDeck.vue'
-import HackeDichtGallery from '../views/HackeDichtGallery.vue'
-import HackeDichtEditor from '../views/HackeDichtEditor.vue'
-import HackeDichtPlay from '../views/HackeDichtPlay.vue'
-import HackeDichtPlayMultiplayer from '../views/HackeDichtPlayMultiplayer.vue'
-import HackeDichtPlayerView from '../views/HackeDichtPlayerView.vue'
-import AiTakesOverGallery from '../views/AiTakesOverGallery.vue'
-import AiTakesOverEditor from '../views/AiTakesOverEditor.vue'
-import AiTakesOverPlay from '../views/AiTakesOverPlay.vue'
-import AiTakesOverPlayMultiplayer from '../views/AiTakesOverPlayMultiplayer.vue'
-import AiTakesOverPlayerView from '../views/AiTakesOverPlayerView.vue'
+import PlayerSetup from '../views/PlayerSetup.vue'
+
+// Top 10 views
+import Gallery from '../games/top10/views/Gallery.vue'
+import EditDeck from '../games/top10/views/EditDeck.vue'
+import PlayDeck from '../games/top10/views/PlayDeck.vue'
+
+// Hacke Dicht views
+import HackeDichtGallery from '../games/hacke-dicht/views/HackeDichtGallery.vue'
+import HackeDichtEditor from '../games/hacke-dicht/views/HackeDichtEditor.vue'
+import HackeDichtPlay from '../games/hacke-dicht/views/HackeDichtPlay.vue'
+import HackeDichtPlayMultiplayer from '../games/hacke-dicht/views/HackeDichtPlayMultiplayer.vue'
+import HackeDichtPlayerView from '../games/hacke-dicht/views/HackeDichtPlayerView.vue'
+
+// AI Takes Over views
+import AiTakesOverPlayMultiplayer from '../games/ai-takes-over/views/AiTakesOverPlayMultiplayer.vue'
+import AiTakesOverPlayerView from '../games/ai-takes-over/views/AiTakesOverPlayerView.vue'
 
 
 const routes = [
@@ -26,6 +32,11 @@ const routes = [
     path: '/games',
     name: 'GameSelection',
     component: GameSelection
+  },
+  {
+    path: '/player-setup',
+    name: 'PlayerSetup',
+    component: PlayerSetup
   },
   // Top 10 Routes
   {
@@ -68,7 +79,7 @@ const routes = [
     component: HackeDichtPlay,
     props: true
   },
-  // Multiplayer Routes
+  // Hacke Dicht Multiplayer Routes
   {
     path: '/hacke-dicht/play-multiplayer/:gameId',
     name: 'HackeDichtPlayMultiplayer',
@@ -83,56 +94,20 @@ const routes = [
     props: true,
     meta: { requiresAuth: false }
   },
+
   // AI Takes Over Routes
   {
-    path: '/ai-takes-over/gallery',
-    name: 'AiTakesOverGallery',
-    component: AiTakesOverGallery
-  },
-  {
-    path: '/ai-takes-over/editor',
-    name: 'AiTakesOverEditor',
-    component: AiTakesOverEditor
-  },
-  {
-    path: '/ai-takes-over/editor/:gameId',
-    name: 'AiTakesOverEditorEdit',
-    component: AiTakesOverEditor,
-    props: true
-  },
-  {
-    path: '/ai-takes-over/play/:gameId',
-    name: 'AiTakesOverPlay',
-    component: AiTakesOverPlay,
-    props: true
-  },
-  // AI Takes Over Multiplayer Routes
-  {
-    path: '/ai-takes-over/play-multiplayer/:gameId',
-    name: 'AiTakesOverPlayMultiplayer',
+    path: '/ai-takes-over',
+    name: 'AiTakesOverLobby',
     component: AiTakesOverPlayMultiplayer,
-    props: true,
     meta: { requiresAuth: true }
   },
   {
-    path: '/play-mobile-ai/:lobbyCode',
+    path: '/ai-takes-over/play/:lobbyCode',
     name: 'AiTakesOverPlayerView',
     component: AiTakesOverPlayerView,
     props: true,
     meta: { requiresAuth: false }
-  },
-  // Legacy redirects
-  {
-    path: '/gallery',
-    redirect: '/top10/gallery'
-  },
-  {
-    path: '/edit/:deckId',
-    redirect: to => `/top10/edit/${to.params.deckId}`
-  },
-  {
-    path: '/play/:deckId',
-    redirect: to => `/top10/play/${to.params.deckId}`
   }
 ]
 
@@ -143,13 +118,13 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const isAuthenticated = localStorage.getItem('authenticated') === 'true'
-  
+
   // Allow mobile player route without authentication
   if (to.name === 'HackeDichtPlayerView') {
     next()
     return
   }
-  
+
   if (to.name !== 'Login' && !isAuthenticated) {
     next({ name: 'Login' })
   } else if (to.name === 'Login' && isAuthenticated) {
