@@ -62,7 +62,7 @@ export const GAME_MODES = {
   debug: {
     name: 'Debug',
     description: 'Kurze Zeiten zum Testen',
-    disciplines: ['bildertitel', 'dreiWortChaos', 'autocompleteChaos', 'conspiracyCorner', 'werbungFuerMuell'],
+    disciplines: ['duell', 'bildertitel', 'dreiWortChaos', 'autocompleteChaos', 'conspiracyCorner', 'werbungFuerMuell'],
     bildertitel: { rounds: 1, writeTime: 10, voteTime: 5 },
     dreiWortChaos: { rounds: 1, writeTime: 10, voteTime: 5 },
     autocompleteChaos: { rounds: 1, writeTime: 10, voteTime: 5 },
@@ -75,7 +75,7 @@ export const GAME_MODES = {
 // ACTIVE GAME MODE - CHANGE THIS TO SWITCH MODES
 // =============================================================================
 
-export const ACTIVE_GAME_MODE = 'standard'
+export const ACTIVE_GAME_MODE = 'debug'
 
 // =============================================================================
 // GET ACTIVE CONFIGURATION

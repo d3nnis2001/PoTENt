@@ -107,11 +107,24 @@
       @submit-vote="handleAutocompleteChaosSubmitVote"
     />
 
-    <!-- Phase 10: Duell Spectator/Player View -->
+    <!-- Phase 10: Duell Intro (Spectator View) -->
     <DuellSpectator
-      v-else-if="phase === 'playing' && currentDiscipline === 'duell'"
+      v-else-if="phase === 'playing' && currentDiscipline === 'duell' && duellState?.phase === 'intro'"
       :duell-state="duellState"
       :current-player-id="currentPlayer?.id"
+    />
+
+    <!-- Phase 11: Duell Game (Active Game) -->
+    <DuellGame
+      v-else-if="phase === 'playing' && currentDiscipline === 'duell' && duellState?.phase === 'playing'"
+      :duell-state="duellState"
+      :players="playersList"
+      :current-player-id="currentPlayer?.id"
+      :is-host="false"
+      :game-data="duellState?.gameData"
+      @submit-answer="handleDuellSubmitAnswer"
+      @game-complete="handleDuellGameComplete"
+      @spectator-submit="handleDuellSpectatorSubmit"
     />
 
     <!-- Fallback: Game Placeholder -->
@@ -135,9 +148,16 @@ import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLobby } from '@/shared/composables/useLobby'
 import { lobbyStore } from '@/games/hacke-dicht/store/lobbyStore'
+import { bildertitelStore } from '@/games/ai-takes-over/stores/bildertitelStore'
+import { dreiWortChaosStore } from '@/games/ai-takes-over/stores/dreiWortChaosStore'
+import { autocompleteChaosStore } from '@/games/ai-takes-over/stores/autocompleteChaosStore'
+import { conspiracyCornerStore } from '@/games/ai-takes-over/stores/conspiracyCornerStore'
+import { werbungFuerMuellStore } from '@/games/ai-takes-over/stores/werbungFuerMuellStore'
+import { duellStore } from '@/games/ai-takes-over/stores/duellStore'
 import { globalToast } from '@/shared/composables/useToast'
 import { useI18n } from '@/games/ai-takes-over/composables/useI18n'
 import { useCharacterListener } from '@/games/ai-takes-over/composables/useCharacterListener'
+import { useDisciplinePlayer } from '@/games/ai-takes-over/composables/useDisciplinePlayer'
 import {
   BILDERTITEL_CONFIG,
   DREI_WORT_CHAOS_CONFIG,
@@ -156,6 +176,7 @@ import ConspiracyCornerPlayer from '@/games/ai-takes-over/components/disciplines
 import WerbungFuerMuellPlayer from '@/games/ai-takes-over/components/disciplines/werbungFuerMuell/WerbungFuerMuellPlayer.vue'
 import AutocompleteChaosPlayer from '@/games/ai-takes-over/components/disciplines/autocompleteChaos/AutocompleteChaosPlayer.vue'
 import DuellSpectator from '@/games/ai-takes-over/components/duell/DuellSpectator.vue'
+import DuellGame from '@/games/ai-takes-over/components/duell/DuellGame.vue'
 import TerminalBox from '@/games/ai-takes-over/components/molecules/TerminalBox.vue'
 import CyberButton from '@/games/ai-takes-over/components/atoms/CyberButton.vue'
 
@@ -172,6 +193,7 @@ export default {
     WerbungFuerMuellPlayer,
     AutocompleteChaosPlayer,
     DuellSpectator,
+    DuellGame,
     TerminalBox,
     CyberButton
   },
@@ -230,97 +252,44 @@ export default {
       return currentLobby.value?.gameState?.discipline || null
     })
 
-    // ===== BILDERTITEL COMPUTED =====
-    const bildertitelState = computed(() => {
-      return currentLobby.value?.gameState?.bildertitel || null
-    })
+    // Discipline Composables
+    const bildertitel = useDisciplinePlayer('bildertitel', bildertitelStore, lobbyStore, globalToast, t)
+    const dreiWortChaos = useDisciplinePlayer('dreiWortChaos', dreiWortChaosStore, lobbyStore, globalToast, t)
+    const conspiracyCorner = useDisciplinePlayer('conspiracyCorner', conspiracyCornerStore, lobbyStore, globalToast, t)
+    const werbungFuerMuell = useDisciplinePlayer('werbungFuerMuell', werbungFuerMuellStore, lobbyStore, globalToast, t)
+    const autocompleteChaos = useDisciplinePlayer('autocompleteChaos', autocompleteChaosStore, lobbyStore, globalToast, t)
 
+    // Bildertitel-specific computed (custom logic not in composable)
     const assignedImage = computed(() => {
-      if (!currentPlayer.value || !bildertitelState.value) return null
-      return lobbyStore.getPlayerAssignedImage(currentPlayer.value.id)
+      if (!currentPlayer.value || !bildertitel.state.value) return null
+      return bildertitelStore.getPlayerAssignedImage(lobbyStore, currentPlayer.value.id)
     })
 
     const currentImageId = computed(() => {
-      if (!bildertitelState.value) return ''
-      const images = bildertitelState.value.roundImages || []
-      const index = bildertitelState.value.currentRevealIndex || 0
+      if (!bildertitel.state.value) return ''
+      const images = bildertitel.state.value.roundImages || []
+      const index = bildertitel.state.value.currentRevealIndex || 0
       return images[index]?.id || ''
     })
 
     const bildertitelVoteOptions = computed(() => {
       if (!currentImageId.value) return []
-      return lobbyStore.getTitlesForImage(currentImageId.value)
+      return bildertitelStore.getTitlesForImage(lobbyStore, currentImageId.value)
     })
 
     const bildertitelCanVote = computed(() => {
       if (!currentPlayer.value || !currentImageId.value) return false
-      return lobbyStore.canPlayerVoteOnImage(currentPlayer.value.id, currentImageId.value)
+      return bildertitelStore.canPlayerVoteOnImage(lobbyStore, currentPlayer.value.id, currentImageId.value)
     })
 
-    const bildertitelPlayerScore = computed(() => {
-      if (!currentPlayer.value || !bildertitelState.value) return 0
-      return bildertitelState.value.scores?.[currentPlayer.value.id] || 0
-    })
-
-    // ===== 3-WORT-CHAOS COMPUTED =====
-    const dreiWortChaosState = computed(() => {
-      return currentLobby.value?.gameState?.dreiWortChaos || null
-    })
-
-    const dreiWortChaosVoteOptions = computed(() => {
-      return lobbyStore.getDreiWortChaosSubmissions()
-    })
-
-    const dreiWortChaosPlayerScore = computed(() => {
-      if (!currentPlayer.value || !dreiWortChaosState.value) return 0
-      return dreiWortChaosState.value.scores?.[currentPlayer.value.id] || 0
-    })
-
-    // ===== CONSPIRACY CORNER COMPUTED =====
-    const conspiracyCornerState = computed(() => {
-      return currentLobby.value?.gameState?.conspiracyCorner || null
-    })
-
-    const conspiracyCornerVoteOptions = computed(() => {
-      return lobbyStore.getConspiracyCornerSubmissions()
-    })
-
-    const conspiracyCornerPlayerScore = computed(() => {
-      if (!currentPlayer.value || !conspiracyCornerState.value) return 0
-      return conspiracyCornerState.value.scores?.[currentPlayer.value.id] || 0
-    })
-
-    // ===== WERBUNG FÜR MÜLL COMPUTED =====
-    const werbungFuerMuellState = computed(() => {
-      return currentLobby.value?.gameState?.werbungFuerMuell || null
-    })
-
-    const werbungFuerMuellVoteOptions = computed(() => {
-      return lobbyStore.getWerbungFuerMuellSubmissions()
-    })
-
-    const werbungFuerMuellPlayerScore = computed(() => {
-      if (!currentPlayer.value || !werbungFuerMuellState.value) return 0
-      return werbungFuerMuellState.value.scores?.[currentPlayer.value.id] || 0
-    })
-
-    // ===== AUTOCOMPLETE CHAOS COMPUTED =====
-    const autocompleteChaosState = computed(() => {
-      return currentLobby.value?.gameState?.autocompleteChaos || null
-    })
-
-    const autocompleteChaosVoteOptions = computed(() => {
-      return lobbyStore.getAutocompleteChaosSubmissions()
-    })
-
-    const autocompleteChaosPlayerScore = computed(() => {
-      if (!currentPlayer.value || !autocompleteChaosState.value) return 0
-      return autocompleteChaosState.value.scores?.[currentPlayer.value.id] || 0
-    })
-
-    // ===== DUELL COMPUTED =====
+    // Duell state
     const duellState = computed(() => {
       return currentLobby.value?.gameState?.duell || null
+    })
+
+    // Players list for DuellGame
+    const playersList = computed(() => {
+      return Object.values(players.value || {}).filter(p => p.isOnline)
     })
 
     // Methods
@@ -352,99 +321,35 @@ export default {
       }
     }
 
-    // ===== BILDERTITEL HANDLERS =====
-    const handleBildertitelSubmitTitle = async (title) => {
-      try {
-        await lobbyStore.submitBildertitelTitle(title)
-        success(t('toasts.voteTransmitted'))
-      } catch (err) {
-        showError(t('toasts.errors.transmission', { message: err.message }))
-      }
+    // ===== DISCIPLINE HANDLERS (using composables) =====
+    const handleBildertitelSubmitTitle = (title) => bildertitel.handleSubmit(title)
+    const handleBildertitelSubmitVote = (titleOwnerId, imageId) => bildertitel.handleVote(titleOwnerId, imageId)
+
+    const handleDreiWortChaosSubmitAnswer = (answer) => dreiWortChaos.handleSubmit(answer)
+    const handleDreiWortChaosSubmitVote = (answerId) => dreiWortChaos.handleVote(answerId)
+
+    const handleConspiracyCornerSubmitTheory = (theory) => conspiracyCorner.handleSubmit(theory)
+    const handleConspiracyCornerSubmitVote = (theoryOwnerId) => conspiracyCorner.handleVote(theoryOwnerId)
+
+    const handleWerbungFuerMuellSubmitPitch = (pitch) => werbungFuerMuell.handleSubmit(pitch)
+    const handleWerbungFuerMuellSubmitVote = (pitchOwnerId) => werbungFuerMuell.handleVote(pitchOwnerId)
+
+    const handleAutocompleteChaosSubmitCompletion = (completion) => autocompleteChaos.handleSubmit(completion)
+    const handleAutocompleteChaosSubmitVote = (completionOwnerId) => autocompleteChaos.handleVote(completionOwnerId)
+
+    // ===== DUELL HANDLERS =====
+    const handleDuellSubmitAnswer = async (data) => {
+      console.log('Player duell answer:', data)
+      await duellStore.submitAction(lobbyStore, 'answer', data)
     }
 
-    const handleBildertitelSubmitVote = async (titleOwnerId, imageId) => {
-      try {
-        await lobbyStore.submitBildertitelVote(titleOwnerId, imageId)
-        success(t('toasts.voteTransmitted'))
-      } catch (err) {
-        showError(t('toasts.errors.transmission', { message: err.message }))
-      }
+    const handleDuellGameComplete = async (data) => {
+      console.log('Duell game complete from player:', data)
     }
 
-    // ===== 3-WORT-CHAOS HANDLERS =====
-    const handleDreiWortChaosSubmitAnswer = async (answer) => {
-      try {
-        await lobbyStore.submitDreiWortChaosAnswer(answer)
-        success(t('toasts.voteTransmitted'))
-      } catch (err) {
-        showError(t('toasts.errors.transmission', { message: err.message }))
-      }
-    }
-
-    const handleDreiWortChaosSubmitVote = async (answerId) => {
-      try {
-        await lobbyStore.submitDreiWortChaosVote(answerId)
-        success(t('toasts.voteTransmitted'))
-      } catch (err) {
-        showError(t('toasts.errors.transmission', { message: err.message }))
-      }
-    }
-
-    // ===== CONSPIRACY CORNER HANDLERS =====
-    const handleConspiracyCornerSubmitTheory = async (theory) => {
-      try {
-        await lobbyStore.submitConspiracyCornerTheory(theory)
-        success(t('toasts.voteTransmitted'))
-      } catch (err) {
-        showError(t('toasts.errors.transmission', { message: err.message }))
-      }
-    }
-
-    const handleConspiracyCornerSubmitVote = async (theoryOwnerId) => {
-      try {
-        await lobbyStore.submitConspiracyCornerVote(theoryOwnerId)
-        success(t('toasts.voteTransmitted'))
-      } catch (err) {
-        showError(t('toasts.errors.transmission', { message: err.message }))
-      }
-    }
-
-    // ===== WERBUNG FÜR MÜLL HANDLERS =====
-    const handleWerbungFuerMuellSubmitPitch = async (pitch) => {
-      try {
-        await lobbyStore.submitWerbungFuerMuellPitch(pitch)
-        success(t('toasts.voteTransmitted'))
-      } catch (err) {
-        showError(t('toasts.errors.transmission', { message: err.message }))
-      }
-    }
-
-    const handleWerbungFuerMuellSubmitVote = async (pitchOwnerId) => {
-      try {
-        await lobbyStore.submitWerbungFuerMuellVote(pitchOwnerId)
-        success(t('toasts.voteTransmitted'))
-      } catch (err) {
-        showError(t('toasts.errors.transmission', { message: err.message }))
-      }
-    }
-
-    // ===== AUTOCOMPLETE CHAOS HANDLERS =====
-    const handleAutocompleteChaosSubmitCompletion = async (completion) => {
-      try {
-        await lobbyStore.submitAutocompleteChaosCompletion(completion)
-        success(t('toasts.voteTransmitted'))
-      } catch (err) {
-        showError(t('toasts.errors.transmission', { message: err.message }))
-      }
-    }
-
-    const handleAutocompleteChaosSubmitVote = async (completionOwnerId) => {
-      try {
-        await lobbyStore.submitAutocompleteChaosVote(completionOwnerId)
-        success(t('toasts.voteTransmitted'))
-      } catch (err) {
-        showError(t('toasts.errors.transmission', { message: err.message }))
-      }
+    const handleDuellSpectatorSubmit = async (data) => {
+      console.log('Spectator submit:', data)
+      await duellStore.submitAction(lobbyStore, 'spectator-answer', data)
     }
 
     const leaveLobby = async () => {
@@ -464,7 +369,7 @@ export default {
     })
 
     // Reset player component state when phase changes
-    watch(() => bildertitelState.value?.phase, (newPhase, oldPhase) => {
+    watch(() => bildertitel.state.value?.phase, (newPhase, oldPhase) => {
       if (currentDiscipline.value !== 'bildertitel') return
       if (newPhase === 'writing' && oldPhase !== 'writing') {
         bildertitelPlayerRef.value?.resetForNewRound?.()
@@ -473,28 +378,28 @@ export default {
       }
     })
 
-    watch(() => dreiWortChaosState.value?.phase, (newPhase, oldPhase) => {
+    watch(() => dreiWortChaos.state.value?.phase, (newPhase, oldPhase) => {
       if (currentDiscipline.value !== 'dreiWortChaos') return
       if (newPhase === 'writing' && oldPhase !== 'writing') {
         dreiWortChaosPlayerRef.value?.resetForNewRound?.()
       }
     })
 
-    watch(() => conspiracyCornerState.value?.phase, (newPhase, oldPhase) => {
+    watch(() => conspiracyCorner.state.value?.phase, (newPhase, oldPhase) => {
       if (currentDiscipline.value !== 'conspiracyCorner') return
       if (newPhase === 'writing' && oldPhase !== 'writing') {
         conspiracyCornerPlayerRef.value?.resetForNewRound?.()
       }
     })
 
-    watch(() => werbungFuerMuellState.value?.phase, (newPhase, oldPhase) => {
+    watch(() => werbungFuerMuell.state.value?.phase, (newPhase, oldPhase) => {
       if (currentDiscipline.value !== 'werbungFuerMuell') return
       if (newPhase === 'writing' && oldPhase !== 'writing') {
         werbungFuerMuellPlayerRef.value?.resetForNewRound?.()
       }
     })
 
-    watch(() => autocompleteChaosState.value?.phase, (newPhase, oldPhase) => {
+    watch(() => autocompleteChaos.state.value?.phase, (newPhase, oldPhase) => {
       if (currentDiscipline.value !== 'autocompleteChaos') return
       if (newPhase === 'writing' && oldPhase !== 'writing') {
         autocompleteChaosPlayerRef.value?.resetForNewRound?.()
@@ -524,31 +429,32 @@ export default {
       playerCount,
       connectionStatus,
       currentDiscipline,
-      // Bildertitel
-      bildertitelState,
+      // Bildertitel (custom)
+      bildertitelState: bildertitel.state,
       assignedImage,
       currentImageId,
       bildertitelVoteOptions,
       bildertitelCanVote,
-      bildertitelPlayerScore,
-      // 3-Wort-Chaos
-      dreiWortChaosState,
-      dreiWortChaosVoteOptions,
-      dreiWortChaosPlayerScore,
-      // Conspiracy Corner
-      conspiracyCornerState,
-      conspiracyCornerVoteOptions,
-      conspiracyCornerPlayerScore,
-      // Werbung für Müll
-      werbungFuerMuellState,
-      werbungFuerMuellVoteOptions,
-      werbungFuerMuellPlayerScore,
-      // Autocomplete Chaos
-      autocompleteChaosState,
-      autocompleteChaosVoteOptions,
-      autocompleteChaosPlayerScore,
+      bildertitelPlayerScore: bildertitel.playerScore,
+      // 3-Wort-Chaos (composable)
+      dreiWortChaosState: dreiWortChaos.state,
+      dreiWortChaosVoteOptions: dreiWortChaos.voteOptions,
+      dreiWortChaosPlayerScore: dreiWortChaos.playerScore,
+      // Conspiracy Corner (composable)
+      conspiracyCornerState: conspiracyCorner.state,
+      conspiracyCornerVoteOptions: conspiracyCorner.voteOptions,
+      conspiracyCornerPlayerScore: conspiracyCorner.playerScore,
+      // Werbung für Müll (composable)
+      werbungFuerMuellState: werbungFuerMuell.state,
+      werbungFuerMuellVoteOptions: werbungFuerMuell.voteOptions,
+      werbungFuerMuellPlayerScore: werbungFuerMuell.playerScore,
+      // Autocomplete Chaos (composable)
+      autocompleteChaosState: autocompleteChaos.state,
+      autocompleteChaosVoteOptions: autocompleteChaos.voteOptions,
+      autocompleteChaosPlayerScore: autocompleteChaos.playerScore,
       // Duell
       duellState,
+      playersList,
       // Methods
       handleCodeSubmit,
       handleHackingComplete,
@@ -563,6 +469,9 @@ export default {
       handleWerbungFuerMuellSubmitVote,
       handleAutocompleteChaosSubmitCompletion,
       handleAutocompleteChaosSubmitVote,
+      handleDuellSubmitAnswer,
+      handleDuellGameComplete,
+      handleDuellSpectatorSubmit,
       leaveLobby
     }
   }

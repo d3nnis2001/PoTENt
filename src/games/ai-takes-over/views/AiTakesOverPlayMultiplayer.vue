@@ -172,7 +172,7 @@
 
         <!-- DUELL INTRO -->
         <DuellIntro
-          v-else-if="currentLobby && currentLobby.status === 'playing' && currentDiscipline === 'duell'"
+          v-else-if="currentLobby && currentLobby.status === 'playing' && currentDiscipline === 'duell' && duellState?.phase === 'intro'"
           ref="duellIntroRef"
           :players="playerList"
           :is-host="true"
@@ -182,6 +182,19 @@
           :pre-selected-game="duellState?.game"
           @duell-ready="handleDuellReady"
           @start-duell="handleDuellStart"
+        />
+
+        <!-- DUELL GAME -->
+        <DuellGame
+          v-else-if="currentLobby && currentLobby.status === 'playing' && currentDiscipline === 'duell' && duellState?.phase === 'playing'"
+          :duell-state="duellState"
+          :players="playerList"
+          :current-player-id="currentPlayer?.id"
+          :is-host="true"
+          :game-data="duellState?.gameData"
+          @submit-answer="handleDuellSubmitAnswer"
+          @game-complete="handleDuellGameComplete"
+          @spectator-submit="handleDuellSpectatorSubmit"
         />
 
         <!-- Game Finished -->
@@ -201,10 +214,16 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLobby } from '@/shared/composables/useLobby'
 import { lobbyStore } from '@/games/hacke-dicht/store/lobbyStore'
+import { bildertitelStore } from '@/games/ai-takes-over/stores/bildertitelStore'
+import { dreiWortChaosStore } from '@/games/ai-takes-over/stores/dreiWortChaosStore'
+import { autocompleteChaosStore } from '@/games/ai-takes-over/stores/autocompleteChaosStore'
+import { conspiracyCornerStore } from '@/games/ai-takes-over/stores/conspiracyCornerStore'
+import { werbungFuerMuellStore } from '@/games/ai-takes-over/stores/werbungFuerMuellStore'
+import { duellStore } from '@/games/ai-takes-over/stores/duellStore'
 import { globalToast } from '@/shared/composables/useToast'
 import { useI18n } from '@/games/ai-takes-over/composables/useI18n'
 import { getBildertitelImages, getImagesForRound, assignPlayersToImages } from '@/games/ai-takes-over/data/bildertitelImages'
@@ -217,13 +236,16 @@ import {
   CONSPIRACY_CORNER_CONFIG,
   WERBUNG_FUER_MUELL_CONFIG,
   DISCIPLINE_ORDER,
-  MINI_DISCIPLINES,
-  getNextDiscipline,
-  hasMoreDisciplines
+  MINI_DISCIPLINES
 } from '@/games/ai-takes-over/config/gameConfig'
 import { getRandomTopics } from '@/games/ai-takes-over/data/conspiracyCornerTopics'
 import { getRandomProducts } from '@/games/ai-takes-over/data/werbungFuerMuellProducts'
 import { DUELL_GAMES, DUELL_CONFIG, selectDuellPlayers, getRandomDuellGame } from '@/games/ai-takes-over/config/duellConfig'
+
+// Composables
+import { useGameTimer } from '@/games/ai-takes-over/composables/useGameTimer'
+import { useDisciplineHost } from '@/games/ai-takes-over/composables/useDisciplineHost'
+import { useDuellSystem } from '@/games/ai-takes-over/composables/useDuellSystem'
 
 // Basic UI Components
 import LoadingView from '@/games/hacke-dicht/components/game/LoadingView.vue'
@@ -238,6 +260,7 @@ import ConspiracyCornerHost from '@/games/ai-takes-over/components/disciplines/c
 import WerbungFuerMuellHost from '@/games/ai-takes-over/components/disciplines/werbungFuerMuell/WerbungFuerMuellHost.vue'
 import AutocompleteChaosHost from '@/games/ai-takes-over/components/disciplines/autocompleteChaos/AutocompleteChaosHost.vue'
 import DuellIntro from '@/games/ai-takes-over/components/duell/DuellIntro.vue'
+import DuellGame from '@/games/ai-takes-over/components/duell/DuellGame.vue'
 import TerminalBox from '@/games/ai-takes-over/components/molecules/TerminalBox.vue'
 import CyberButton from '@/games/ai-takes-over/components/atoms/CyberButton.vue'
 
@@ -254,6 +277,7 @@ export default {
     WerbungFuerMuellHost,
     AutocompleteChaosHost,
     DuellIntro,
+    DuellGame,
     TerminalBox,
     CyberButton
   },
@@ -284,11 +308,10 @@ export default {
     const isCreatingLobby = ref(false)
     const isStartingGame = ref(false)
     const showIntro = ref(false)
-    const timeRemaining = ref(60)
     const allImages = ref(getBildertitelImages())
-    const duellIntroRef = ref(null)
-    const pendingNextDiscipline = ref(null) // Store next discipline after duell
-    let timerInterval = null
+
+    // Timer Composable
+    const { timeRemaining, startTimer, stopTimer, onTimerEnd } = useGameTimer()
 
     // Computed
     const playerList = computed(() => {
@@ -308,7 +331,58 @@ export default {
       return currentLobby.value?.gameState?.discipline || null
     })
 
-    // Bildertitel computed
+    // Helper for starting next discipline
+    const startNextDiscipline = async (nextDiscipline) => {
+      if (nextDiscipline === 'dreiWortChaos') await startDreiWortChaos()
+      else if (nextDiscipline === 'autocompleteChaos') await startAutocompleteChaos()
+      else if (nextDiscipline === 'conspiracyCorner') await startConspiracyCorner()
+      else if (nextDiscipline === 'werbungFuerMuell') await startWerbungFuerMuell()
+    }
+
+    // Discipline Composables
+    const dreiWortChaos = useDisciplineHost(
+      'dreiWortChaos',
+      dreiWortChaosStore,
+      lobbyStore,
+      DREI_WORT_CHAOS_CONFIG,
+      { startTimer, stopTimer }
+    )
+
+    const autocompleteChaos = useDisciplineHost(
+      'autocompleteChaos',
+      autocompleteChaosStore,
+      lobbyStore,
+      AUTOCOMPLETE_CHAOS_CONFIG,
+      { startTimer, stopTimer }
+    )
+
+    const conspiracyCorner = useDisciplineHost(
+      'conspiracyCorner',
+      conspiracyCornerStore,
+      lobbyStore,
+      CONSPIRACY_CORNER_CONFIG,
+      { startTimer, stopTimer }
+    )
+
+    const werbungFuerMuell = useDisciplineHost(
+      'werbungFuerMuell',
+      werbungFuerMuellStore,
+      lobbyStore,
+      WERBUNG_FUER_MUELL_CONFIG,
+      { startTimer, stopTimer }
+    )
+
+    // Duell Composable
+    const duell = useDuellSystem(
+      lobbyStore,
+      duellStore,
+      DUELL_CONFIG,
+      selectDuellPlayers,
+      getRandomDuellGame,
+      startNextDiscipline
+    )
+
+    // Bildertitel specific state (has unique image logic)
     const bildertitelState = computed(() => {
       return currentLobby.value?.gameState?.bildertitel || null
     })
@@ -321,7 +395,7 @@ export default {
     })
 
     const bildertitelSubmissionCount = computed(() => {
-      return lobbyStore.getBildertitelSubmissionCount()
+      return bildertitelStore.getSubmissionCount(lobbyStore)
     })
 
     const bildertitelAllSubmitted = computed(() => {
@@ -330,102 +404,10 @@ export default {
 
     const titlesForCurrentImage = computed(() => {
       if (!currentImage.value) return []
-      return lobbyStore.getTitlesForImage(currentImage.value.id)
+      return bildertitelStore.getTitlesForImage(lobbyStore, currentImage.value.id)
     })
 
-    // 3-Wort-Chaos computed
-    const dreiWortChaosState = computed(() => {
-      return currentLobby.value?.gameState?.dreiWortChaos || null
-    })
-
-    const dreiWortChaosSubmissionCount = computed(() => {
-      return lobbyStore.getDreiWortChaosSubmissionCount()
-    })
-
-    const dreiWortChaosAllSubmitted = computed(() => {
-      return dreiWortChaosSubmissionCount.value >= playerCount.value
-    })
-
-    const dreiWortChaosSubmissions = computed(() => {
-      return lobbyStore.getDreiWortChaosSubmissions()
-    })
-
-    // ===== CONSPIRACY CORNER COMPUTED =====
-    const conspiracyCornerState = computed(() => {
-      return currentLobby.value?.gameState?.conspiracyCorner || null
-    })
-
-    const conspiracyCornerSubmissionCount = computed(() => {
-      return lobbyStore.getConspiracyCornerSubmissionCount()
-    })
-
-    const conspiracyCornerAllSubmitted = computed(() => {
-      return conspiracyCornerSubmissionCount.value >= playerCount.value
-    })
-
-    const conspiracyCornerSubmissions = computed(() => {
-      return lobbyStore.getConspiracyCornerSubmissions()
-    })
-
-    // ===== WERBUNG FÜR MÜLL COMPUTED =====
-    const werbungFuerMuellState = computed(() => {
-      return currentLobby.value?.gameState?.werbungFuerMuell || null
-    })
-
-    const werbungFuerMuellSubmissionCount = computed(() => {
-      return lobbyStore.getWerbungFuerMuellSubmissionCount()
-    })
-
-    const werbungFuerMuellAllSubmitted = computed(() => {
-      return werbungFuerMuellSubmissionCount.value >= playerCount.value
-    })
-
-    const werbungFuerMuellSubmissions = computed(() => {
-      return lobbyStore.getWerbungFuerMuellSubmissions()
-    })
-
-    // ===== AUTOCOMPLETE CHAOS COMPUTED =====
-    const autocompleteChaosState = computed(() => {
-      return currentLobby.value?.gameState?.autocompleteChaos || null
-    })
-
-    const autocompleteChaosSubmissionCount = computed(() => {
-      return lobbyStore.getAutocompleteChaosSubmissionCount()
-    })
-
-    const autocompleteChaosAllSubmitted = computed(() => {
-      return autocompleteChaosSubmissionCount.value >= playerCount.value
-    })
-
-    const autocompleteChaosSubmissions = computed(() => {
-      return lobbyStore.getAutocompleteChaosSubmissions()
-    })
-
-    // ===== DUELL COMPUTED =====
-    const duellState = computed(() => {
-      return currentLobby.value?.gameState?.duell || null
-    })
-
-    // Timer methods
-    const startTimer = (seconds) => {
-      stopTimer()
-      timeRemaining.value = seconds
-      timerInterval = setInterval(() => {
-        timeRemaining.value--
-        if (timeRemaining.value <= 0) {
-          stopTimer()
-          handleTimerEnd()
-        }
-      }, 1000)
-    }
-
-    const stopTimer = () => {
-      if (timerInterval) {
-        clearInterval(timerInterval)
-        timerInterval = null
-      }
-    }
-
+    // Timer end handler
     const handleTimerEnd = () => {
       const discipline = currentDiscipline.value
 
@@ -434,23 +416,26 @@ export default {
         if (phase === 'writing') handleBildertitelStartReveal()
         else if (phase === 'voting') handleBildertitelFinishVoting()
       } else if (discipline === 'dreiWortChaos') {
-        const phase = dreiWortChaosState.value?.phase
-        if (phase === 'writing') handleDreiWortChaosStartReveal()
-        else if (phase === 'voting') handleDreiWortChaosFinishVoting()
+        const phase = dreiWortChaos.state.value?.phase
+        if (phase === 'writing') dreiWortChaos.handleStartReveal()
+        else if (phase === 'voting') dreiWortChaos.handleFinishVoting()
       } else if (discipline === 'conspiracyCorner') {
-        const phase = conspiracyCornerState.value?.phase
-        if (phase === 'writing') handleConspiracyCornerStartReveal()
-        else if (phase === 'voting') handleConspiracyCornerFinishVoting()
+        const phase = conspiracyCorner.state.value?.phase
+        if (phase === 'writing') conspiracyCorner.handleStartReveal()
+        else if (phase === 'voting') conspiracyCorner.handleFinishVoting()
       } else if (discipline === 'werbungFuerMuell') {
-        const phase = werbungFuerMuellState.value?.phase
-        if (phase === 'writing') handleWerbungFuerMuellStartReveal()
-        else if (phase === 'voting') handleWerbungFuerMuellFinishVoting()
+        const phase = werbungFuerMuell.state.value?.phase
+        if (phase === 'writing') werbungFuerMuell.handleStartReveal()
+        else if (phase === 'voting') werbungFuerMuell.handleFinishVoting()
       } else if (discipline === 'autocompleteChaos') {
-        const phase = autocompleteChaosState.value?.phase
-        if (phase === 'writing') handleAutocompleteChaosStartReveal()
-        else if (phase === 'voting') handleAutocompleteChaosFinishVoting()
+        const phase = autocompleteChaos.state.value?.phase
+        if (phase === 'writing') autocompleteChaos.handleStartReveal()
+        else if (phase === 'voting') autocompleteChaos.handleFinishVoting()
       }
     }
+
+    // Register timer end callback
+    onTimerEnd(handleTimerEnd)
 
     // Methods
     const copyLobbyCode = async () => {
@@ -512,13 +497,22 @@ export default {
       try {
         await startGameAction()
 
-        // Initialize Bildertitel as first discipline
-        const playersData = playerList.value.map(p => ({ id: p.id, name: p.name, icon: p.icon }))
-        const roundImages = getImagesForRound(playersData.length, 0, allImages.value)
-        const assignments = assignPlayersToImages(playersData, roundImages)
+        // Check first discipline from config
+        const firstDiscipline = DISCIPLINE_ORDER[0]
 
-        await lobbyStore.initializeBildertitel(roundImages, assignments)
-        startTimer(BILDERTITEL_CONFIG.writeTime)
+        if (firstDiscipline === 'duell') {
+          // Start with Duell - trigger it with the second discipline as next
+          const nextAfterDuell = DISCIPLINE_ORDER[1] || 'bildertitel'
+          await duell.triggerDuell(nextAfterDuell)
+        } else {
+          // Initialize Bildertitel as first discipline (default)
+          const playersData = playerList.value.map(p => ({ id: p.id, name: p.name, icon: p.icon }))
+          const roundImages = getImagesForRound(playersData.length, 0, allImages.value)
+          const assignments = assignPlayersToImages(playersData, roundImages)
+
+          await bildertitelStore.initialize(lobbyStore, roundImages, assignments)
+          startTimer(BILDERTITEL_CONFIG.writeTime)
+        }
 
         success(t('toasts.gameInitialized'))
       } catch (error) {
@@ -531,11 +525,11 @@ export default {
     // ===== BILDERTITEL HANDLERS =====
     const handleBildertitelStartReveal = async () => {
       stopTimer()
-      await lobbyStore.updateBildertitelPhase('reveal')
+      await bildertitelStore.updatePhase(lobbyStore, 'reveal')
     }
 
     const handleBildertitelStartVoting = async () => {
-      await lobbyStore.updateBildertitelPhase('voting')
+      await bildertitelStore.updatePhase(lobbyStore, 'voting')
       startTimer(BILDERTITEL_CONFIG.voteTime)
     }
 
@@ -545,10 +539,10 @@ export default {
       const currentIndex = bildertitelState.value?.currentRevealIndex || 0
 
       if (currentIndex < roundImages.length - 1) {
-        await lobbyStore.nextBildertitelImage()
+        await bildertitelStore.nextImage(lobbyStore)
       } else {
-        await lobbyStore.calculateBildertitelScores()
-        await lobbyStore.updateBildertitelPhase('results')
+        await bildertitelStore.calculateScores(lobbyStore)
+        await bildertitelStore.updatePhase(lobbyStore, 'results')
       }
     }
 
@@ -560,11 +554,11 @@ export default {
         const roundImages = getImagesForRound(playersData.length, currentRound + 1, allImages.value)
         const assignments = assignPlayersToImages(playersData, roundImages)
 
-        await lobbyStore.nextBildertitelRound(roundImages, assignments)
+        await bildertitelStore.nextRound(lobbyStore, roundImages, assignments)
         startTimer(BILDERTITEL_CONFIG.writeTime)
       } else {
         // Bildertitel finished - start 3-Wort-Chaos
-        await lobbyStore.finishBildertitel()
+        await bildertitelStore.finish(lobbyStore)
         await startDreiWortChaos()
       }
     }
@@ -572,137 +566,57 @@ export default {
     // ===== 3-WORT-CHAOS HANDLERS =====
     const startDreiWortChaos = async () => {
       const prompts = getRandomPrompts(DREI_WORT_CHAOS_CONFIG.rounds)
-      await lobbyStore.initializeDreiWortChaos(prompts)
-      startTimer(DREI_WORT_CHAOS_CONFIG.writeTime)
+      await dreiWortChaos.initialize(prompts)
     }
 
-    const handleDreiWortChaosStartReveal = async () => {
-      stopTimer()
-      await lobbyStore.updateDreiWortChaosPhase('reveal')
-    }
-
-    const handleDreiWortChaosStartVoting = async () => {
-      await lobbyStore.updateDreiWortChaosPhase('voting')
-      startTimer(DREI_WORT_CHAOS_CONFIG.voteTime)
-    }
-
-    const handleDreiWortChaosFinishVoting = async () => {
-      stopTimer()
-      await lobbyStore.calculateDreiWortChaosScores()
-      await lobbyStore.updateDreiWortChaosPhase('results')
-    }
-
+    const handleDreiWortChaosStartReveal = () => dreiWortChaos.handleStartReveal()
+    const handleDreiWortChaosStartVoting = () => dreiWortChaos.handleStartVoting()
+    const handleDreiWortChaosFinishVoting = () => dreiWortChaos.handleFinishVoting()
     const handleDreiWortChaosNextRound = async () => {
-      const hasMore = await lobbyStore.nextDreiWortChaosRound()
-      if (hasMore) {
-        startTimer(DREI_WORT_CHAOS_CONFIG.writeTime)
-      } else {
-        // 3-Wort-Chaos finished - trigger DUELL before Autocomplete Chaos
-        await lobbyStore.finishDreiWortChaos()
-        await triggerDuell('autocompleteChaos')
-      }
+      const hasMore = await dreiWortChaos.handleNextRound()
+      if (!hasMore) await duell.triggerDuell('autocompleteChaos')
     }
 
     // ===== AUTOCOMPLETE CHAOS HANDLERS =====
     const startAutocompleteChaos = async () => {
       const prompts = getAutocompletePrompts(AUTOCOMPLETE_CHAOS_CONFIG.rounds)
-      await lobbyStore.initializeAutocompleteChaos(prompts)
-      startTimer(AUTOCOMPLETE_CHAOS_CONFIG.writeTime)
+      await autocompleteChaos.initialize(prompts)
     }
 
-    const handleAutocompleteChaosStartReveal = async () => {
-      stopTimer()
-      await lobbyStore.updateAutocompleteChaosPhase('reveal')
-    }
-
-    const handleAutocompleteChaosStartVoting = async () => {
-      await lobbyStore.updateAutocompleteChaosPhase('voting')
-      startTimer(AUTOCOMPLETE_CHAOS_CONFIG.voteTime)
-    }
-
-    const handleAutocompleteChaosFinishVoting = async () => {
-      stopTimer()
-      await lobbyStore.calculateAutocompleteChaosScores()
-      await lobbyStore.updateAutocompleteChaosPhase('results')
-    }
-
+    const handleAutocompleteChaosStartReveal = () => autocompleteChaos.handleStartReveal()
+    const handleAutocompleteChaosStartVoting = () => autocompleteChaos.handleStartVoting()
+    const handleAutocompleteChaosFinishVoting = () => autocompleteChaos.handleFinishVoting()
     const handleAutocompleteChaosNextRound = async () => {
-      const hasMore = await lobbyStore.nextAutocompleteChaosRound()
-      if (hasMore) {
-        startTimer(AUTOCOMPLETE_CHAOS_CONFIG.writeTime)
-      } else {
-        // Autocomplete Chaos finished - start Conspiracy Corner
-        await lobbyStore.finishAutocompleteChaos()
-        await startConspiracyCorner()
-      }
+      const hasMore = await autocompleteChaos.handleNextRound()
+      if (!hasMore) await startConspiracyCorner()
     }
 
     // ===== CONSPIRACY CORNER HANDLERS =====
     const startConspiracyCorner = async () => {
       const topics = getRandomTopics(CONSPIRACY_CORNER_CONFIG.rounds)
-      await lobbyStore.initializeConspiracyCorner(topics)
-      startTimer(CONSPIRACY_CORNER_CONFIG.writeTime)
+      await conspiracyCorner.initialize(topics)
     }
 
-    const handleConspiracyCornerStartReveal = async () => {
-      stopTimer()
-      await lobbyStore.updateConspiracyCornerPhase('reveal')
-    }
-
-    const handleConspiracyCornerStartVoting = async () => {
-      await lobbyStore.updateConspiracyCornerPhase('voting')
-      startTimer(CONSPIRACY_CORNER_CONFIG.voteTime)
-    }
-
-    const handleConspiracyCornerFinishVoting = async () => {
-      stopTimer()
-      await lobbyStore.calculateConspiracyCornerScores()
-      await lobbyStore.updateConspiracyCornerPhase('results')
-    }
-
+    const handleConspiracyCornerStartReveal = () => conspiracyCorner.handleStartReveal()
+    const handleConspiracyCornerStartVoting = () => conspiracyCorner.handleStartVoting()
+    const handleConspiracyCornerFinishVoting = () => conspiracyCorner.handleFinishVoting()
     const handleConspiracyCornerNextRound = async () => {
-      const hasMore = await lobbyStore.nextConspiracyCornerRound()
-      if (hasMore) {
-        startTimer(CONSPIRACY_CORNER_CONFIG.writeTime)
-      } else {
-        // Conspiracy Corner finished - trigger DUELL before Werbung für Müll
-        await lobbyStore.finishConspiracyCorner()
-        await triggerDuell('werbungFuerMuell')
-      }
+      const hasMore = await conspiracyCorner.handleNextRound()
+      if (!hasMore) await duell.triggerDuell('werbungFuerMuell')
     }
 
     // ===== WERBUNG FÜR MÜLL HANDLERS =====
     const startWerbungFuerMuell = async () => {
       const products = getRandomProducts(WERBUNG_FUER_MUELL_CONFIG.rounds)
-      await lobbyStore.initializeWerbungFuerMuell(products)
-      startTimer(WERBUNG_FUER_MUELL_CONFIG.writeTime)
+      await werbungFuerMuell.initialize(products)
     }
 
-    const handleWerbungFuerMuellStartReveal = async () => {
-      stopTimer()
-      await lobbyStore.updateWerbungFuerMuellPhase('reveal')
-    }
-
-    const handleWerbungFuerMuellStartVoting = async () => {
-      await lobbyStore.updateWerbungFuerMuellPhase('voting')
-      startTimer(WERBUNG_FUER_MUELL_CONFIG.voteTime)
-    }
-
-    const handleWerbungFuerMuellFinishVoting = async () => {
-      stopTimer()
-      await lobbyStore.calculateWerbungFuerMuellScores()
-      await lobbyStore.updateWerbungFuerMuellPhase('results')
-    }
-
+    const handleWerbungFuerMuellStartReveal = () => werbungFuerMuell.handleStartReveal()
+    const handleWerbungFuerMuellStartVoting = () => werbungFuerMuell.handleStartVoting()
+    const handleWerbungFuerMuellFinishVoting = () => werbungFuerMuell.handleFinishVoting()
     const handleWerbungFuerMuellNextRound = async () => {
-      const hasMore = await lobbyStore.nextWerbungFuerMuellRound()
-      if (hasMore) {
-        startTimer(WERBUNG_FUER_MUELL_CONFIG.writeTime)
-      } else {
-        // Werbung für Müll finished - end game
-        await lobbyStore.finishWerbungFuerMuell()
-        await lobbyStore.finishGame()
-      }
+      const hasMore = await werbungFuerMuell.handleNextRound()
+      if (!hasMore) await lobbyStore.finishGame()
     }
 
     const handleBackToGallery = () => {
@@ -711,107 +625,27 @@ export default {
     }
 
     // ===== DUELL HANDLERS =====
-    const triggerDuell = async (nextDisciplineAfterDuell) => {
-      // Store the next discipline to continue after duell
-      pendingNextDiscipline.value = nextDisciplineAfterDuell
+    const handleDuellReady = (duellData) => duell.handleDuellReady(duellData)
+    const handleDuellStart = (duellData) => duell.handleDuellStart(duellData)
+    const handleDuellComplete = () => duell.handleDuellComplete()
 
-      // Select random players and game
-      const selectedPlayers = selectDuellPlayers(playerList.value)
-      const selectedGame = getRandomDuellGame()
-
-      if (!selectedPlayers) {
-        console.error('Not enough players for duell')
-        // Skip duell and continue to next discipline
-        await startNextDiscipline(nextDisciplineAfterDuell)
-        return
-      }
-
-      // Initialize duell in Firebase
-      await lobbyStore.initializeDuell(
-        selectedPlayers.playerA,
-        selectedPlayers.playerB,
-        selectedGame
-      )
-
-      // Start the intro animation
-      setTimeout(() => {
-        duellIntroRef.value?.start()
-      }, 500)
+    // Duell Game handlers (for when the actual mini-game is playing)
+    const handleDuellSubmitAnswer = async (data) => {
+      console.log('Duell answer submitted:', data)
+      // TODO: Process answer and update game state
     }
 
-    const handleDuellReady = async (duellData) => {
-      // Duell intro is complete, waiting for host to start
-      console.log('Duell ready:', duellData)
-    }
-
-    const handleDuellStart = async (duellData) => {
-      // Update phase to playing
-      await lobbyStore.updateDuellPhase('playing')
-      // The actual duell game component will be shown based on the game type
-      console.log('Duell starting:', duellData)
-    }
-
-    const handleDuellComplete = async () => {
-      // Finish duell and add winner points
-      await lobbyStore.finishDuell(DUELL_CONFIG.winnerPoints)
-
-      // Wait a moment to show results
-      setTimeout(async () => {
-        // Clear duell and move to next discipline
-        const nextDiscipline = pendingNextDiscipline.value
-        pendingNextDiscipline.value = null
-        await lobbyStore.clearDuell(nextDiscipline)
-        await startNextDiscipline(nextDiscipline)
-      }, 3000)
-    }
-
-    const startNextDiscipline = async (discipline) => {
-      switch (discipline) {
-        case 'autocompleteChaos':
-          await startAutocompleteChaos()
-          break
-        case 'conspiracyCorner':
-          await startConspiracyCorner()
-          break
-        case 'werbungFuerMuell':
-          await startWerbungFuerMuell()
-          break
-        default:
-          // End game if no more disciplines
-          await lobbyStore.finishGame()
+    const handleDuellGameComplete = async (data) => {
+      console.log('Duell game complete:', data)
+      if (data.action === 'finish') {
+        await duell.handleDuellComplete()
       }
     }
 
-    // Watch for phase changes
-    watch(() => bildertitelState.value?.phase, (newPhase) => {
-      if (currentDiscipline.value !== 'bildertitel') return
-      if (newPhase === 'writing') startTimer(BILDERTITEL_CONFIG.writeTime)
-      else if (newPhase === 'voting') startTimer(BILDERTITEL_CONFIG.voteTime)
-    })
-
-    watch(() => dreiWortChaosState.value?.phase, (newPhase) => {
-      if (currentDiscipline.value !== 'dreiWortChaos') return
-      if (newPhase === 'writing') startTimer(DREI_WORT_CHAOS_CONFIG.writeTime)
-      else if (newPhase === 'voting') startTimer(DREI_WORT_CHAOS_CONFIG.voteTime)
-    })
-
-    watch(() => conspiracyCornerState.value?.phase, (newPhase) => {
-      if (currentDiscipline.value !== 'conspiracyCorner') return
-      if (newPhase === 'writing') startTimer(CONSPIRACY_CORNER_CONFIG.writeTime)
-      else if (newPhase === 'voting') startTimer(CONSPIRACY_CORNER_CONFIG.voteTime)
-    })
-
-    watch(() => werbungFuerMuellState.value?.phase, (newPhase) => {
-      if (currentDiscipline.value !== 'werbungFuerMuell') return
-      if (newPhase === 'writing') startTimer(WERBUNG_FUER_MUELL_CONFIG.writeTime)
-      else if (newPhase === 'voting') startTimer(WERBUNG_FUER_MUELL_CONFIG.voteTime)
-    })
-
-    watch(() => autocompleteChaosState.value?.phase, (newPhase) => {
-      if (currentDiscipline.value !== 'autocompleteChaos') return
-      if (newPhase === 'writing') startTimer(AUTOCOMPLETE_CHAOS_CONFIG.writeTime)
-      else if (newPhase === 'voting') startTimer(AUTOCOMPLETE_CHAOS_CONFIG.voteTime)
-    })
+    const handleDuellSpectatorSubmit = async (data) => {
+      console.log('Spectator submitted:', data)
+      // TODO: Process spectator answer
+    }
 
     onMounted(() => {})
     onUnmounted(() => { stopTimer() })
@@ -838,29 +672,35 @@ export default {
       playerCount,
       joinUrl,
       currentDiscipline,
+      // Bildertitel (custom)
       bildertitelState,
       currentImage,
       bildertitelSubmissionCount,
       bildertitelAllSubmitted,
       titlesForCurrentImage,
-      dreiWortChaosState,
-      dreiWortChaosSubmissionCount,
-      dreiWortChaosAllSubmitted,
-      dreiWortChaosSubmissions,
-      conspiracyCornerState,
-      conspiracyCornerSubmissionCount,
-      conspiracyCornerAllSubmitted,
-      conspiracyCornerSubmissions,
-      werbungFuerMuellState,
-      werbungFuerMuellSubmissionCount,
-      werbungFuerMuellAllSubmitted,
-      werbungFuerMuellSubmissions,
-      autocompleteChaosState,
-      autocompleteChaosSubmissionCount,
-      autocompleteChaosAllSubmitted,
-      autocompleteChaosSubmissions,
-      duellState,
-      duellIntroRef,
+      // DreiWortChaos (composable)
+      dreiWortChaosState: dreiWortChaos.state,
+      dreiWortChaosSubmissionCount: dreiWortChaos.submissionCount,
+      dreiWortChaosAllSubmitted: dreiWortChaos.allSubmitted,
+      dreiWortChaosSubmissions: dreiWortChaos.submissions,
+      // ConspiracyCorner (composable)
+      conspiracyCornerState: conspiracyCorner.state,
+      conspiracyCornerSubmissionCount: conspiracyCorner.submissionCount,
+      conspiracyCornerAllSubmitted: conspiracyCorner.allSubmitted,
+      conspiracyCornerSubmissions: conspiracyCorner.submissions,
+      // WerbungFuerMuell (composable)
+      werbungFuerMuellState: werbungFuerMuell.state,
+      werbungFuerMuellSubmissionCount: werbungFuerMuell.submissionCount,
+      werbungFuerMuellAllSubmitted: werbungFuerMuell.allSubmitted,
+      werbungFuerMuellSubmissions: werbungFuerMuell.submissions,
+      // AutocompleteChaos (composable)
+      autocompleteChaosState: autocompleteChaos.state,
+      autocompleteChaosSubmissionCount: autocompleteChaos.submissionCount,
+      autocompleteChaosAllSubmitted: autocompleteChaos.allSubmitted,
+      autocompleteChaosSubmissions: autocompleteChaos.submissions,
+      // Duell (composable)
+      duellState: duell.state,
+      duellIntroRef: duell.duellIntroRef,
       DUELL_GAMES,
 
       // Methods
@@ -893,7 +733,10 @@ export default {
       AUTOCOMPLETE_CHAOS_ROUNDS,
       handleDuellReady,
       handleDuellStart,
-      handleDuellComplete
+      handleDuellComplete,
+      handleDuellSubmitAnswer,
+      handleDuellGameComplete,
+      handleDuellSpectatorSubmit
     }
   }
 }

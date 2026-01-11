@@ -4,43 +4,15 @@
     <div class="header text-center mb-6">
       <div class="duell-badge">DUELL</div>
       <h2 class="text-xl font-mono font-bold text-cyan-400 mt-2">
-        {{ duellState?.game?.name || 'DUELL' }}
+        {{ duellState?.game?.name || 'DUELL WIRD VORBEREITET...' }}
       </h2>
     </div>
 
-    <!-- VS Display -->
-    <div class="vs-container mb-6">
-      <div class="player player-a">
-        <div class="player-avatar">
-          <img :src="duellState?.playerA?.icon" :alt="duellState?.playerA?.name" />
-        </div>
-        <div class="player-name">{{ duellState?.playerA?.name || 'Spieler A' }}</div>
-        <div v-if="isCurrentPlayerA" class="you-badge">DU</div>
-      </div>
-
-      <div class="vs-text">VS</div>
-
-      <div class="player player-b">
-        <div class="player-avatar">
-          <img :src="duellState?.playerB?.icon" :alt="duellState?.playerB?.name" />
-        </div>
-        <div class="player-name">{{ duellState?.playerB?.name || 'Spieler B' }}</div>
-        <div v-if="isCurrentPlayerB" class="you-badge">DU</div>
-      </div>
-    </div>
-
-    <!-- Spectator Message -->
-    <div v-if="!isInDuell" class="spectator-message">
-      <div class="spectator-icon">👀</div>
-      <p class="spectator-text">Du schaust zu...</p>
-      <p class="spectator-subtext">Schau auf den Hauptbildschirm!</p>
-    </div>
-
-    <!-- Active Duelist Message -->
-    <div v-else class="duelist-message">
-      <div class="duelist-icon">⚔️</div>
-      <p class="duelist-text">Du bist im Duell!</p>
-      <p class="duelist-subtext">Schau auf den Hauptbildschirm für Anweisungen</p>
+    <!-- Loading/Intro Animation -->
+    <div class="intro-loading text-center mb-6">
+      <div class="loading-icon">🎲</div>
+      <p class="loading-text">Bob wählt die Duellanten aus...</p>
+      <p class="loading-subtext">Schau auf den Hauptbildschirm!</p>
     </div>
 
     <!-- Winner Display -->
@@ -71,18 +43,6 @@ export default {
     }
   },
   setup(props) {
-    const isCurrentPlayerA = computed(() => {
-      return props.duellState?.playerA?.id === props.currentPlayerId
-    })
-
-    const isCurrentPlayerB = computed(() => {
-      return props.duellState?.playerB?.id === props.currentPlayerId
-    })
-
-    const isInDuell = computed(() => {
-      return isCurrentPlayerA.value || isCurrentPlayerB.value
-    })
-
     const winnerName = computed(() => {
       if (!props.duellState?.winner) return ''
       if (props.duellState.winner === props.duellState.playerA?.id) {
@@ -96,9 +56,6 @@ export default {
     })
 
     return {
-      isCurrentPlayerA,
-      isCurrentPlayerB,
-      isInDuell,
       winnerName,
       isWinner
     }
@@ -124,6 +81,38 @@ export default {
   font-weight: bold;
   color: white;
   letter-spacing: 2px;
+}
+
+.intro-loading {
+  padding: 40px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid var(--ai-border, #1e3a5f);
+  border-radius: 16px;
+}
+
+.loading-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  animation: bounce 1s ease infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.loading-text {
+  font-family: monospace;
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--ai-cyan, #00ffff);
+  margin-bottom: 8px;
+}
+
+.loading-subtext {
+  font-family: monospace;
+  font-size: 14px;
+  color: var(--ai-text-muted, #8892b0);
 }
 
 .vs-container {
